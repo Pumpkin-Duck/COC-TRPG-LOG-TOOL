@@ -263,6 +263,19 @@
         };
         reader.readAsText(file, "UTF-8");
     }
+     // 這裡抓取劇本標題，若沒填則預設叫 Log
+    const scenarioTitle = document.getElementById('scenario-name').value || 'Log';
+
+    // 關鍵修改：這行會讓 PDF 預設存檔名稱正確
+    document.title = scenarioTitle; 
+
+    // 下載 HTML 的部分也微調
+    function downloadHTML() {
+        const title = document.title; // 直接抓剛才設定好的網頁標題
+        // ... 後續 blob 邏輯 ...
+        a.download = `${title}_Log.html`; 
+        a.click();
+    }
 
     function downloadHTML() {
         const title = document.getElementById('scenario-name').value || 'Log';
@@ -281,3 +294,4 @@
 </body>
 
 </html>
+
