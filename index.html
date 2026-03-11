@@ -13,6 +13,7 @@
             --text-color: #4a4a4a;
             --border-color: #dcdcdc;
             --bar-bg: #f4f1ea;
+            --edit-color: #e67e22;
         }
 
         [data-theme="dark"] {
@@ -28,106 +29,161 @@
             @page { margin: 1.2cm; }
             body { background: white !important; color: black !important; padding: 0 !important; }
             .container { box-shadow: none !important; max-width: 100% !important; padding: 0 !important; border: none !important; }
-            .no-print { display: none !important; }
+            .no-print, .mode-switcher, .edit-btn, .add-ho-btn { display: none !important; }
             #output { display: block !important; border: none !important; padding: 0 !important; }
             .block-styled, .ending-text, .info-bar { break-inside: avoid; }
         }
 
         body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: var(--bg-color); color: var(--text-color); padding: 40px 20px; margin: 0; line-height: 1.8; transition: all 0.3s ease; }
-        .container { max-width: 950px; margin: auto; background: var(--container-bg); padding: 40px; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.05); }
+        .container { max-width: 1100px; margin: auto; background: var(--container-bg); padding: 45px; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.05); }
         .theme-switch { position: fixed; top: 20px; right: 20px; padding: 10px 18px; border-radius: 30px; border: 1.5px solid var(--primary-color); background: var(--container-bg); color: var(--primary-color); cursor: pointer; font-weight: bold; z-index: 100; }
 
-        h1.tool-title { text-align: center; color: var(--primary-color); margin-bottom: 40px; font-size: 28px; letter-spacing: 2px; }
-        label { display: block; font-weight: bold; margin-bottom: 10px; color: var(--primary-color); font-size: 15px; }
-        input[type="text"], textarea { width: 100%; padding: 14px 18px; border: 1.5px solid var(--border-color); border-radius: 12px; box-sizing: border-box; background-color: #fafafa; color: #4a4a4a; margin-bottom: 20px; font-size: 14px; transition: 0.3s; }
+        .mode-switcher { display: inline-flex; background: #eeeae3; padding: 5px; border-radius: 50px; border: 1px solid var(--border-color); margin-right: 20px; }
+        .mode-btn { padding: 10px 25px; border-radius: 25px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; background: transparent; color: var(--text-color); opacity: 0.6; font-size: 15px; }
+        .mode-btn.active { background: var(--primary-color); color: white; opacity: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
+        h1.tool-title { text-align: center; color: var(--primary-color); margin-bottom: 45px; font-size: 32px; letter-spacing: 2px; font-weight: 900; }
+        label { display: block; font-weight: bold; margin-bottom: 12px; color: var(--primary-color); font-size: 16px; }
+        input[type="text"], textarea { width: 100%; padding: 15px 20px; border: 1.5px solid var(--border-color); border-radius: 12px; box-sizing: border-box; background-color: #fafafa; color: #4a4a4a; margin-bottom: 15px; font-size: 15px; transition: 0.3s; }
         [data-theme="dark"] input[type="text"], [data-theme="dark"] textarea { background-color: #2a2a2a; color: #eee; border-color: #444; }
 
-        .row { display: flex; gap: 30px; margin-bottom: 10px; align-items: flex-start; }
-        .col { flex: 1; min-width: 0; }
+        .row { display: flex; gap: 40px; margin-bottom: 25px; align-items: flex-start; width: 100%; }
+        .col-half { flex: 1; min-width: 0; }
 
-        .file-upload-wrapper { text-align: center; padding: 25px; border: 1.5px dashed var(--border-color); border-radius: 15px; background: rgba(0,0,0,0.01); margin-bottom: 30px; }
-
-        .config-panel { margin-top: 30px; padding: 30px; border-radius: 20px; background: rgba(0,0,0,0.02); border: 1px solid var(--border-color); display: none; }
-        .config-title { font-size: 16px; font-weight: bold; color: var(--primary-color); margin-bottom: 25px; border-left: 5px solid var(--primary-color); padding-left: 15px; display: flex; align-items: center; justify-content: space-between; }
-        .channel-item { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; background: var(--container-bg); padding: 12px 20px; border-radius: 15px; border: 1px solid var(--border-color); }
-        
-        .color-pill { display: flex; align-items: center; gap: 10px; background: #fff; padding: 6px 15px; border-radius: 50px; border: 1.5px solid var(--border-color); box-shadow: inset 0 1px 3px rgba(0,0,0,0.02); }
+        .color-pill { display: flex; align-items: center; gap: 10px; background: #fff; padding: 6px 15px; border-radius: 50px; border: 1.2px solid var(--border-color); box-shadow: 0 2px 6px rgba(0,0,0,0.03); height: 45px; flex-shrink: 0; }
         [data-theme="dark"] .color-pill { background: #2a2a2a; }
-        input[type="color"] { width: 26px; height: 26px; border: none; cursor: pointer; background: none; padding: 0; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
+        input[type="color"] { width: 22px; height: 22px; border: none; cursor: pointer; background: none; padding: 0; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
         input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
-        .hex-field { border: none !important; background: transparent !important; margin-bottom: 0 !important; padding: 0 !important; width: 85px !important; font-family: monospace; font-size: 13px !important; color: inherit !important; font-weight: bold; }
+        .hex-field { border: none !important; background: transparent !important; margin-bottom: 0 !important; padding: 0 !important; width: 75px !important; font-family: monospace; font-size: 14px !important; color: inherit !important; font-weight: bold; }
 
-        #output { margin-top: 60px; padding: 50px; border: 1px solid var(--border-color); background: var(--container-bg); display: none; border-radius: 20px; }
-        .log-item { cursor: grab; position: relative; user-select: none; }
-        .log-item.dragging { opacity: 0.3; }
-        .log-item.drag-over { border-top: 3px solid var(--secondary-color); }
+        #ho-editor-list { margin-bottom: 15px; }
+        .ho-edit-item { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+        .ho-tag-input { width: 80px !important; flex-shrink: 0; text-align: center; }
+        .pl-name-input { flex: 1; min-width: 0; }
 
-        .log-line { margin-bottom: 1.6em; word-wrap: break-word; font-size: 15px; }
+        .add-ho-btn { background: var(--container-bg); color: var(--primary-color); border: 1.5px solid var(--primary-color); padding: 8px 20px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 5px; transition: 0.2s; }
+
+        .channel-item { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .channel-name { min-width: 80px; font-weight: bold; color: var(--primary-color); }
+        .channel-tag-input { width: 150px !important; margin: 0 !important; padding: 8px 15px !important; }
+
+        #output { margin-top: 60px; padding: 50px; border: 1px solid var(--border-color); background: var(--container-bg); display: none; border-radius: 25px; }
+        .log-item { position: relative; }
+        .edit-btn { position: absolute; left: -50px; top: 10px; width: 35px; height: 35px; border-radius: 50%; background: var(--container-bg); border: 1.5px solid var(--border-color); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--edit-color); opacity: 0; transition: 0.2s; z-index: 10; font-size: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        [data-mode="edit"] .log-item:hover .edit-btn { opacity: 1; }
+        .delete-btn {
+            position: absolute;
+            left: -50px;
+            top: 50px; /* 放在編輯筆下方 */
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: var(--container-bg);
+            border: 1.5px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #e74c3c; /* 紅色 */
+            opacity: 0;
+            transition: 0.2s;
+            z-index: 10;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        [data-mode="edit"] .log-item:hover .delete-btn { opacity: 1; }
+
+        .text-content { outline: none; display: inline-block; width: 100%; }
+        [data-mode="edit"] .text-content:focus { background: rgba(230, 126, 34, 0.05); border-radius: 8px; }
+
+        .log-line { margin-bottom: 1.8em; word-wrap: break-word; font-size: 15px; }
         .char-name-label { display: block; font-weight: bold; margin-bottom: 2px; font-size: 0.95em; }
+        .other-bubble { width: fit-content; max-width: 75%; margin-left: auto; padding: 15px 25px; border-radius: 22px 22px 4px 22px; text-align: right; font-size: 15px; margin-bottom: 1.6em; border-right: 6px solid var(--secondary-color); background: var(--bar-bg); }
+        .block-styled { padding: 30px 35px; border-radius: 15px; margin: 20px 0; border-left: 10px solid var(--primary-color); transition: none; }
+        .info-tag { font-weight: bold; color: var(--primary-color); font-size: 13px; display: block; margin-bottom: 12px; letter-spacing: 1px; }
 
-        .other-bubble { width: fit-content; max-width: 75%; margin-left: auto; padding: 12px 22px; border-radius: 20px 20px 4px 20px; text-align: right; font-size: 14px; margin-bottom: 1.4em; border-right: 5px solid var(--secondary-color); background: var(--bar-bg); }
-        
-        .block-styled { padding: 20px 25px; border-radius: 12px; margin: 15px 0; border-left: 6px solid var(--primary-color); transition: all 0.2s; }
-        .info-tag { font-weight: bold; color: var(--primary-color); font-size: 12px; display: block; margin-bottom: 8px; }
-
-        /* 融合邏輯樣式 */
-        .block-styled[data-merged="true"] {margin-top: 0 !important; border-top-left-radius: 0 !important; border-top-right-radius: 0 !important; border-top: none !important; }
-        .block-styled[data-merged="true"] .info-tag { display: none; }
-        /* 修改：當下一個區塊是融合區塊時，目前區塊的底部也要變直角 */
-        .log-item:has(+ .log-item .block-styled[data-merged="true"]) .block-styled { 
-            border-bottom-left-radius: 0 !important; 
-            border-bottom-right-radius: 0 !important; 
-            margin-bottom: 0 !important; 
+        /* 當區塊被標記為合併時：去掉上方圓角、去掉上方邊框、去掉上方間距 */
+        .block-styled[data-merged="true"] {
+            margin-top: 0 !important;
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+            border-top: none !important;
+            padding-top: 5px !important; /* 縮短內部頂部間距 */
         }
 
-        /* 基礎樣式微調：確保邊框是一體成形的 */
-        .block-styled { 
-            padding: 20px 25px; 
-            border-radius: 12px; 
-            margin: 15px 0; 
-            border-left: 6px solid var(--primary-color); 
-            transition: none; /* 移除動畫，避免移動時閃爍 */
+        /* 隱藏合併區塊內重複的標籤（例如：情報、系統） */
+        .block-styled[data-merged="true"] .info-tag {
+            display: none;
         }
-        
-        /* 被手動拆分時強制恢復圓角與間距 */
-        .block-styled[data-split="true"] { 
-            margin-top: 15px !important; 
-            border-top-left-radius: 12px !important; 
-            border-top-right-radius: 12px !important; 
+
+        /* 處理被合併者的「前一個元素」：去掉下方圓角、去掉下方間距 */
+        .log-item:has(+ .log-item .block-styled[data-merged="true"]) .block-styled {
+            border-bottom-left-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            margin-bottom: 0 !important;
+            padding-bottom: 5px !important;
         }
 
         .info-bar { background-color: transparent; padding: 25px; border-radius: 15px; margin-bottom: 50px; border: none; }
-        .ending-text { font-size: 17px; font-weight: bold; margin: 60px auto; display: block; text-align: center !important; background-color: var(--bar-bg); padding: 20px; border-radius: 12px; width: 85%; border: 1.5px solid var(--border-color); }
+        .info-line { display: flex; align-items: center; margin-bottom: 12px; font-size: 16px; font-weight: bold; }
 
-        .generate-btn { background-color: var(--primary-color); color: white; border: none; padding: 16px; border-radius: 12px; cursor: pointer; font-size: 17px; font-weight: bold; width: 100%; margin-top: 10px; transition: 0.3s; box-shadow: 0 6px 15px rgba(166, 124, 82, 0.2); }
+        .file-upload-wrapper { text-align: center; padding: 55px 30px; border: 2.5px dashed var(--border-color); border-radius: 20px; background: rgba(0,0,0,0.01); margin: 40px 0; transition: 0.3s; }
+        .file-upload-wrapper label { font-size: 18px; margin-bottom: 25px; color: var(--primary-color); opacity: 0.9; }
+
+        .generate-btn { background-color: var(--primary-color); color: white; border: none; padding: 18px; border-radius: 15px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; margin-top: 10px; transition: 0.3s; box-shadow: 0 6px 15px rgba(166, 124, 82, 0.2); }
+        .action-btn { background: #8fa4b3; color: white; padding: 15px 30px; border: none; border-radius: 15px; cursor: pointer; font-weight: bold; font-size: 16px; height: 60px; transition: 0.3s; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; }
+        
+        /* 編輯模式下的滑鼠手勢 */
+        [data-mode="edit"] .log-item { cursor: grab; }
+        [data-mode="edit"] .log-item:active { cursor: grabbing; }
+
+        /* 拖拽中的透明度變化 */
+        .log-item.dragging { opacity: 0.4; border: 2px dashed var(--primary-color); }
+
+        /* 拖拽經過時的上方指示線 */
+        .log-item.drag-over { border-top: 5px solid var(--secondary-color) !important; }
     </style>
 </head>
-<body data-theme="light">
+<body data-theme="light" data-mode="view">
 
-<button class="theme-switch no-print" onclick="toggleTheme()">切換暗色模式</button>
+<button class="theme-switch no-print" id="theme-btn" onclick="toggleTheme()">切換暗色模式</button>
 
 <div class="container">
     <h1 class="tool-title no-print">CoC TRPG 團務整理工具</h1>
     
     <div class="input-section no-print">
-        <div class="row"><div class="col"><label>劇本名</label><input type="text" id="scenario-name" placeholder="請輸入標題" oninput="liveUpdateHeader()"></div></div>
+        <div class="row"><div class="col-half"><label>劇本名</label><input type="text" id="scenario-name" placeholder="請輸入標題" oninput="saveToLocal()"></div></div>
         <div class="row">
-            <div class="col"><label>簡介圖片 (貼上)</label><div id="image-preview" style="width:100%; height:180px; border:2.5px dashed var(--secondary-color); display:flex; align-items:center; justify-content:center; cursor:pointer; border-radius:15px; background:rgba(0,0,0,0.02);" onclick="document.getElementById('image-input').click()"><span>點擊或貼上</span></div><input type="file" id="image-input" accept="image/*" style="display:none" onchange="handleFileSelect(this)"></div>
-            <div class="col"><label>簡介內容</label><textarea id="intro-text" style="height: 180px;" oninput="liveUpdateHeader()"></textarea></div>
+            <div class="col-half">
+                <label>簡介圖片 (貼上)</label>
+                <div id="image-preview" style="width:100%; height:180px; border:2.5px dashed var(--secondary-color); display:flex; align-items:center; justify-content:center; cursor:pointer; border-radius:15px; background:rgba(0,0,0,0.02);" onclick="document.getElementById('image-input').click()"><span>點擊或貼上</span></div>
+                <input type="file" id="image-input" accept="image/*" style="display:none" onchange="handleFileSelect(this)">
+            </div>
+            <div class="col-half"><label>簡介內容</label><textarea id="intro-text" style="height: 180px;" oninput="saveToLocal()"></textarea></div>
         </div>
+        
         <div class="row">
-            <div class="col"><label>KP</label><input type="text" id="kp-name" oninput="liveUpdateHeader()"></div>
-            <div class="col"><label>HO名 PL</label><textarea id="ho-info" style="height: 60px;" oninput="liveUpdateHeader()" placeholder="格式：HO名 PL名 (例如：HO1 南呱)"></textarea></div>
+            <div class="col-half">
+                <label>KP 資訊</label>
+                <input type="text" id="kp-name" placeholder="KP 名稱" oninput="saveToLocal()" style="margin:0;">
+            </div>
+            <div class="col-half">
+                <label>HO 與 PL 資訊</label>
+                <div id="ho-editor-list"></div>
+                <button class="add-ho-btn" onclick="addHORow()">+ 添加 HO 資訊</button>
+            </div>
         </div>
-        <div class="file-upload-wrapper">
-            <label style="margin-bottom: 10px; display: block;">上傳 CCFOLIA 下載的 Log HTML 檔案</label>
+
+        <div class="file-upload-wrapper no-print">
+            <label>上傳 CCFOLIA 下載的 Log HTML 檔案</label>
             <input type="file" id="html-file" accept=".html">
         </div>
+        
         <div id="config-panel" class="config-panel">
             <div class="config-title">
-                <span>選擇輸出頻道與背板顏色</span>
+                <span>頻道與顏色設定</span>
                 <label style="font-size: 14px; display: flex; align-items: center; gap: 8px; margin-bottom: 0;">
-                    <input type="checkbox" id="global-show-name" onchange="liveRenderLog()"> 顯示角色名字 (除了雜談)
+                    <input type="checkbox" id="global-show-name" checked onchange="liveRenderLog(); saveToLocal();"> 顯示名字 
                 </label>
             </div>
             <div id="channel-options"></div>
@@ -136,10 +192,14 @@
         </div>
     </div>
 
-    <button class="generate-btn no-print" onclick="firstRender()">輸出團錄</button>
-    <div class="action-buttons no-print" id="action-area" style="display:none; gap:15px; margin-top:30px;">
-        <button onclick="downloadHTML()" style="flex:1; background:var(--secondary-color); color:white; padding:16px; border:none; border-radius:12px; cursor:pointer; font-weight:bold;">下載整理後的 HTML</button>
-        <button onclick="window.print()" style="flex:1; background:#7a8d99; color:white; padding:15px; border:none; border-radius:12px; cursor:pointer; font-weight:bold;">儲存為 PDF</button>
+    <button class="generate-btn no-print" onclick="firstRender()">輸出團錄預覽</button>
+    <div class="action-buttons no-print" id="action-area" style="display:none; align-items: center; gap:15px; margin-top:40px; justify-content: center;">
+        <div class="mode-switcher">
+            <button class="mode-btn active" id="btn-view" onclick="switchMode('view')">閱覽模式</button>
+            <button class="mode-btn" id="btn-edit" onclick="switchMode('edit')">編輯模式</button>
+        </div>
+        <button onclick="downloadHTML()" class="action-btn">下載HTML</button>
+        <button onclick="window.print()" class="action-btn" style="background:#7a8d99;">儲存為 PDF</button>
     </div>
 
     <div id="output">
@@ -152,152 +212,88 @@
 </div>
 
 <script>
-    let charColorMap = {};
-    let channelConfigs = {};
-    let rawLogData = [];
-    let dragSrcEl = null;
-    let draggedGroup = [];
+    let dragSrcEl = null; // 儲存被拖拽的原始 DOM 元素
+    let draggedGroup = []; // 儲存聯動移動的整組元素（如果區塊是合併狀態）
 
-    const DEFAULT_COLORS = { info: '#eeeeee', other: '#cfdbe3', custom: '#f9f9f9' };
-
-    function toggleTheme() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); }
-
-    window.addEventListener('paste', e => {
-        const item = Array.from(e.clipboardData.items).find(x => x.type.indexOf('image') !== -1);
-        if (item) {
-            const r = new FileReader();
-            r.onload = ev => { document.getElementById('image-preview').innerHTML = `<img src="${ev.target.result}" style="max-width:100%; max-height:100%; border-radius:12px;">`; if(document.getElementById('output').style.display === 'block') liveUpdateHeader(); };
-            r.readAsDataURL(item.getAsFile());
-        }
-    });
-
-    function handleFileSelect(i) { if (i.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:100%; border-radius:12px;">`; if(document.getElementById('output').style.display === 'block') liveUpdateHeader(); }; r.readAsDataURL(i.files[0]); } }
-
-    document.getElementById('html-file').addEventListener('change', e => {
-        const file = e.target.files[0]; if (!file) return;
-        const reader = new FileReader();
-        reader.onload = ev => {
-            const doc = new DOMParser().parseFromString(ev.target.result, 'text/html');
-            charColorMap = {}; channelConfigs = {}; rawLogData = [];
-            doc.querySelectorAll('p').forEach(p => {
-                const spans = p.querySelectorAll('span');
-                if (spans.length >= 3) {
-                    const ch = spans[0].innerText.trim();
-                    const name = spans[1].innerText.trim();
-                    if (ch && !channelConfigs[ch]) {
-                        let cleanLabel = ch.replace(/[\[\]]/g, ''); 
-                        let finalLabel = cleanLabel;
-                        if (cleanLabel.toLowerCase() === 'info') finalLabel = '情報';
-                        else if (cleanLabel.toLowerCase() === 'other') finalLabel = '雜談';
-
-                        channelConfigs[ch] = { 
-                            label: finalLabel,
-                            bgColor: (ch === '[info]') ? DEFAULT_COLORS.info : (ch === '[other]') ? DEFAULT_COLORS.other : DEFAULT_COLORS.custom,
-                            checked: true 
-                        };
-                    }
-                    if (name && name !== "system" && !charColorMap[name]) charColorMap[name] = rgbToHex(p.style.color) || "#4a4a4a";
-                    rawLogData.push({ ch, name, html: spans[2].innerHTML, raw: spans[2].innerText });
-                }
-            });
-            renderConfigPanel();
-        };
-        reader.readAsText(file, "UTF-8");
-    });
-
-    function rgbToHex(rgb) { if (!rgb || !rgb.startsWith('rgb')) return rgb; const res = rgb.match(/\d+/g).map(x => parseInt(x).toString(16).padStart(2, '0')); return `#${res.join('')}`; }
-
-    function renderConfigPanel() {
-        document.getElementById('config-panel').style.display = 'block';
-        const chContainer = document.getElementById('channel-options'); 
-        chContainer.innerHTML = '';
-        
-        Object.keys(channelConfigs).forEach(ch => {
-            if (ch === '[main]') return;
-            const conf = channelConfigs[ch];
-            let cleanName = ch.replace(/[\[\]]/g, '');
-            let displayName = cleanName;
-            if (cleanName.toLowerCase() === 'info') displayName = '情報';
-            else if (cleanName.toLowerCase() === 'other') displayName = '雜談';
-            
-            const isCustom = (cleanName.toLowerCase() !== 'info' && cleanName.toLowerCase() !== 'other');
-            const tagInputHTML = isCustom 
-                ? `<input type="text" style="width:130px; margin:0; padding:8px; border-radius:8px;" id="tag-${ch}" value="${conf.label}" oninput="liveRenderLog()">`
-                : `<span style="min-width:130px; font-weight:bold; color:var(--text-color); opacity:0.8;">${displayName}</span>`;
-
-            const div = document.createElement('div'); 
-            div.className = 'channel-item';
-            div.innerHTML = `
-                <input type="checkbox" id="chk-${ch}" checked onchange="liveRenderLog()">
-                <span style="min-width:65px; font-weight:bold; color:var(--primary-color);">${cleanName}</span>
-                ${tagInputHTML}
-                <div class="color-pill" style="margin-left:auto;">
-                    <span style="font-size:12px; opacity:0.7;">底色</span>
-                    <input type="color" id="cp-ch-${ch}" value="${conf.bgColor.substring(0,7)}" oninput="updateChannelColor('${ch}', this.value)">
-                    <input type="text" class="hex-field" id="ct-ch-${ch}" value="${conf.bgColor}" oninput="updateChannelColor('${ch}', this.value)">
-                </div>`;
-            chContainer.appendChild(div);
-        });
-        const charContainer = document.getElementById('character-colors'); charContainer.innerHTML = '';
-        Object.keys(charColorMap).forEach(name => {
-            const div = document.createElement('div'); div.className = 'channel-item';
-            div.innerHTML = `<span style="flex:1; font-weight:bold;">${name}</span><div class="color-pill"><input type="color" id="cp-${name}" value="${charColorMap[name]}" oninput="syncCharColor('${name}', this.value, 'text')"><input type="text" class="hex-field" id="ct-${name}" value="${charColorMap[name]}" oninput="syncCharColor('${name}', this.value, 'picker')"></div>`;
-            charContainer.appendChild(div);
-        });
-    }
-
-    function updateChannelColor(ch, val) { channelConfigs[ch].bgColor = val; if(document.getElementById(`cp-ch-${ch}`)) document.getElementById(`cp-ch-${ch}`).value = val.startsWith('#') ? val.substring(0,7) : '#eeeeee'; if(document.getElementById(`ct-ch-${ch}`)) document.getElementById(`ct-ch-${ch}`).value = val; liveRenderLog(); }
-    function syncCharColor(name, val, target) { charColorMap[name] = val; if (target === 'text') document.getElementById(`ct-${name}`).value = val; else if (val.startsWith('#')) document.getElementById(`cp-${name}`).value = val.substring(0,7); liveRenderLog(); }
-
-    /* 拖曳邏輯：聯動移動 */
+    // 當開始拖拽時觸發
     function handleDragStart(e) {
+        if (document.body.getAttribute('data-mode') !== 'edit') return;
+        
         dragSrcEl = this;
-        draggedGroup = [this];
         this.classList.add('dragging');
-
-        // 向上連動
+        
+        // 初始化群組，包含自己
+        draggedGroup = [this];
+        
+        // 1. 向上掃描：如果「自己」是被合併的（頂部圓角消失），則把上面的人拉進來
         let prev = this.previousElementSibling;
         while (prev && prev.querySelector('.block-styled[data-merged="true"]')) {
-            draggedGroup.unshift(prev);
+            draggedGroup.unshift(prev); // 加到陣列開頭
             prev.classList.add('dragging');
             prev = prev.previousElementSibling;
         }
-
-        // 向下連動
+        
+        // 2. 向下掃描：如果「下面的人」是被合併的，則把下面的人拉進來
         let next = this.nextElementSibling;
         while (next && next.querySelector('.block-styled[data-merged="true"]')) {
-            draggedGroup.push(next);
+            draggedGroup.push(next); // 加到陣列末尾
             next.classList.add('dragging');
             next = next.nextElementSibling;
         }
-
+        
         e.dataTransfer.effectAllowed = 'move';
     }
 
-    function handleDragOver(e) { if (e.preventDefault) e.preventDefault(); this.classList.add('drag-over'); return false; }
-    function handleDragLeave() { this.classList.remove('drag-over'); }
+    // 當元素被拖過某個位置時（必須 preventDefault 才能允許放置）
+    function handleDragOver(e) {
+        if (e.preventDefault) e.preventDefault();
+        this.classList.add('drag-over');
+        return false;
+    }
 
+    function handleDragLeave() {
+        this.classList.remove('drag-over');
+    }
+
+    function deleteLogItem(index) {
+        if (confirm("確定要刪除這條訊息嗎？")) {
+            rawLogData.splice(index, 1);
+            liveRenderLog();
+            saveToLocal();
+        }
+    }
+
+    // 核心邏輯：當放開滑鼠時變更數據順序
     function handleDrop(e) {
         if (e.stopPropagation) e.stopPropagation();
+        
         if (dragSrcEl !== this) {
-            const all = [...document.querySelectorAll('.log-item')];
-            const targetIndex = all.indexOf(this);
-            const sourceIndex = all.indexOf(dragSrcEl);
+            const parent = this.parentNode;
+            const allItems = [...document.querySelectorAll('.log-item')];
+            const targetIndex = allItems.indexOf(this);
+            const sourceIndex = allItems.indexOf(dragSrcEl);
 
+            // 移動 DOM 元素位置
             if (sourceIndex < targetIndex) {
-                // 向下移
-                this.parentNode.insertBefore(draggedGroup[0], this.nextSibling);
+                parent.insertBefore(draggedGroup[0], this.nextSibling);
                 for (let i = 1; i < draggedGroup.length; i++) {
-                    draggedGroup[i-1].parentNode.insertBefore(draggedGroup[i], draggedGroup[i-1].nextSibling);
+                    parent.insertBefore(draggedGroup[i], draggedGroup[i-1].nextSibling);
                 }
             } else {
-                // 向上移
-                this.parentNode.insertBefore(draggedGroup[0], this);
+                parent.insertBefore(draggedGroup[0], this);
                 for (let i = 1; i < draggedGroup.length; i++) {
-                    draggedGroup[i-1].parentNode.insertBefore(draggedGroup[i], draggedGroup[i-1].nextSibling);
+                    parent.insertBefore(draggedGroup[i], draggedGroup[i-1].nextSibling);
                 }
             }
+
+            // 重要：重新根據現在的 DOM 順序更新 rawLogData 陣列
+            const newOrder = [...document.querySelectorAll('.log-item')].map(el => rawLogData[el.dataset.index]);
+            rawLogData = newOrder;
+            
+            // 重新掃描合併狀態並存檔
             checkMerging();
+            saveToLocal();
+            liveRenderLog(); // 重新刷新索引，確保下一動作準確
         }
         return false;
     }
@@ -307,129 +303,335 @@
         draggedGroup = [];
     }
 
+    let charColorMap = {};
+    let channelConfigs = {};
+    let rawLogData = [];
+    let hoList = [];
+
+    const THEME_PRESETS = {
+        light: { kpText: "#4a4a4a", infoBg: "#eeeeee", otherBg: "#cfdbe3", customBg: "#f9f9f9" },
+        dark: { kpText: "#d1d1d1", infoBg: "#2a2a2a", otherBg: "#1e2a33", customBg: "#1e1e1e" }
+    };
+
+    window.onload = function() { loadFromLocal(); };
+
+    function parseCustomMarkdown(text) {
+        if (!text) return "";
+        // 先處理換行，再處理 Markdown 符號
+        let html = text.replace(/\n/g, '<br>');
+        
+        return html
+            .replace(/-#([\s\S]*?)#-/g, '<span style="font-size: 0.85em; opacity: 0.6;">$1</span>')
+            .replace(/##([\s\S]*?)##/g, '<h2 style="margin: 5px 0; font-size: 1.2em;">$1</h2>')
+            .replace(/#([\s\S]*?)#/g, '<h1 style="margin: 10px 0; font-size: 1.4em;">$1</h1>')
+            .replace(/\*\*([\s\S]*?)\*\*/g, '<b>$1</b>')
+            .replace(/\/\/([\s\S]*?)\/\//g, '<i>$1</i>');
+    }
+
+    function saveToLocal() {
+        const data = {
+            scenarioName: document.getElementById('scenario-name').value,
+            introText: document.getElementById('intro-text').value,
+            kpName: document.getElementById('kp-name').value,
+            hoList,
+            theme: document.body.getAttribute('data-theme'),
+            mode: document.body.getAttribute('data-mode'),
+            globalShowName: document.getElementById('global-show-name').checked,
+            imgSrc: document.getElementById('image-preview').querySelector('img')?.src || '',
+            charColorMap, channelConfigs, rawLogData,
+            isOutputVisible: document.getElementById('output').style.display === 'block'
+        };
+        localStorage.setItem('trpg_log_v44', JSON.stringify(data));
+    }
+
+    function loadFromLocal() {
+        const saved = localStorage.getItem('trpg_log_v44');
+        if (!saved) { addHORow(); return; }
+        const data = JSON.parse(saved);
+        document.getElementById('scenario-name').value = data.scenarioName || '';
+        document.getElementById('intro-text').value = data.introText || '';
+        document.getElementById('kp-name').value = data.kpName || '';
+        hoList = data.hoList || [];
+        renderHOEditor();
+        document.body.setAttribute('data-theme', data.theme || 'light');
+        document.getElementById('global-show-name').checked = (data.globalShowName !== undefined) ? data.globalShowName : true;
+        if (data.imgSrc) document.getElementById('image-preview').innerHTML = `<img src="${data.imgSrc}" style="max-width:100%; max-height:100%; border-radius:12px;">`;
+        charColorMap = data.charColorMap || {};
+        channelConfigs = data.channelConfigs || {};
+        if (data.rawLogData) {
+            rawLogData = data.rawLogData;
+            renderConfigPanel();
+            if (data.isOutputVisible) {
+                document.getElementById('output').style.display = 'block';
+                document.getElementById('action-area').style.display = 'flex';
+                switchMode(data.mode || 'view');
+                liveUpdateHeader();
+                liveRenderLog();
+            }
+        }
+        document.getElementById('theme-btn').innerText = data.theme === 'dark' ? '切換亮色模式' : '切換暗色模式';
+    }
+
+    function addHORow() {
+        hoList.push({ ho: 'HO' + (hoList.length + 1), pl: '', color: '#a67c52' });
+        renderHOEditor(); saveToLocal();
+    }
+
+    function renderHOEditor() {
+        const container = document.getElementById('ho-editor-list'); container.innerHTML = '';
+        hoList.forEach((item, index) => {
+            const div = document.createElement('div'); div.className = 'ho-edit-item';
+            div.innerHTML = `
+                <input type="text" class="ho-tag-input" value="${item.ho}" oninput="updateHOData(${index}, 'ho', this.value)">
+                <input type="text" class="pl-name-input" placeholder="PL 名稱" value="${item.pl}" oninput="updateHOData(${index}, 'pl', this.value)">
+                <div class="color-pill">
+                    <input type="color" value="${item.color}" oninput="updateHOData(${index}, 'color', this.value, 'picker', this)">
+                    <input type="text" class="hex-field" value="${item.color}" oninput="updateHOData(${index}, 'color', this.value, 'text', this)">
+                </div>
+                <button onclick="removeHORow(${index})" style="background:none; border:none; color:#e74c3c; cursor:pointer; font-weight:bold; font-size:20px; flex-shrink:0;">✕</button>`;
+            container.appendChild(div);
+        });
+    }
+
+    function updateHOData(index, key, val, source, el) {
+        hoList[index][key] = val;
+        if (key === 'color') {
+            const parent = el.closest('.color-pill');
+            if (source === 'picker') parent.querySelector('.hex-field').value = val;
+            else parent.querySelector('input[type="color"]').value = val;
+        }
+        saveToLocal();
+    }
+    function removeHORow(index) { hoList.splice(index, 1); renderHOEditor(); saveToLocal(); }
+
+    function switchMode(mode) {
+        document.body.setAttribute('data-mode', mode);
+        document.getElementById('btn-view').classList.toggle('active', mode === 'view');
+        document.getElementById('btn-edit').classList.toggle('active', mode === 'edit');
+        liveRenderLog(); saveToLocal();
+    }
+
+    function toggleTheme() { 
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        const newTheme = isDark ? 'light' : 'dark';
+        document.body.setAttribute('data-theme', newTheme);
+        document.getElementById('theme-btn').innerText = newTheme === 'light' ? '切換暗色模式' : '切換亮色模式';
+        updateColorsToTheme(newTheme); saveToLocal();
+    }
+
+    function updateColorsToTheme(theme) {
+        const preset = THEME_PRESETS[theme];
+        if (charColorMap["KP（空白）"]) charColorMap["KP（空白）"] = preset.kpText;
+        Object.keys(channelConfigs).forEach(ch => {
+            const conf = channelConfigs[ch];
+            conf.bgColor = (ch === '[info]') ? preset.infoBg : (ch === '[other]') ? preset.otherBg : preset.customBg;
+        });
+        renderConfigPanel(); liveRenderLog();
+    }
+
+    function makeEditable(index) {
+        if (document.body.getAttribute('data-mode') !== 'edit') return;
+        const textNode = document.querySelector(`[data-index="${index}"] .text-content`);
+        if (!textNode) return;
+
+        // 關鍵修正：在進入編輯前，將數據中所有的 <br> 或 <br/> 標籤強制換成 \n
+        // 這樣在 contentEditable 啟動時，瀏覽器只會看到純文字換行
+        let rawContent = rawLogData[index].html;
+        let cleanContent = rawContent.replace(/<br\s*\/?>/gi, '\n');
+        
+        textNode.innerText = cleanContent; 
+        textNode.contentEditable = "true";
+        textNode.focus();
+
+        textNode.onblur = () => {
+            textNode.contentEditable = "false";
+            // 儲存時，我們存下帶有 \n 的純文字
+            rawLogData[index].html = textNode.innerText;
+            saveToLocal();
+            liveRenderLog(); // 透過渲染器重新畫出樣式，這時 parseCustomMarkdown 會把 \n 轉回顯示用的標籤
+        };
+    }
+
+    function liveRenderLog() {
+        const out = document.getElementById('out-content'); out.innerHTML = '';
+        const globalShowName = document.getElementById('global-show-name')?.checked;
+        const currentMode = document.body.getAttribute('data-mode');
+        rawLogData.forEach((item, index) => {
+            const conf = channelConfigs[item.ch]; 
+            if (item.ch !== '[main]' && conf && !document.getElementById(`chk-${item.ch}`)?.checked) return;
+            const wrap = document.createElement('div'); 
+            wrap.className = 'log-item'; wrap.dataset.index = index;
+
+            if (currentMode === 'edit') {
+                wrap.draggable = true;
+                wrap.addEventListener('dragstart', handleDragStart);
+                wrap.addEventListener('dragover', handleDragOver);
+                wrap.addEventListener('dragleave', handleDragLeave);
+                wrap.addEventListener('drop', handleDrop);
+                wrap.addEventListener('dragend', handleDragEnd);
+                
+                wrap.addEventListener('dblclick', function() {
+                    const block = this.querySelector('.block-styled');
+                    if (block) {
+                        const isSplit = block.getAttribute('data-split') === 'true';
+                        block.setAttribute('data-split', !isSplit);
+                        checkMerging();
+                        saveToLocal();
+                    }
+                });
+            } else {
+                wrap.draggable = false;
+            }
+
+            const displayColor = (item.name === "" || item.name === "system") ? charColorMap["KP（空白）"] : (charColorMap[item.name] || "#4a4a4a");
+            const shouldShowName = (item.ch === '[other]' || (globalShowName && item.name && item.name !== "system"));
+            const nameLabel = shouldShowName ? `<span class="char-name-label" style="color:${displayColor}">${item.name}</span>` : '';
+            const parsedContent = parseCustomMarkdown(item.html);
+            const textHTML = `<span class="text-content">${parsedContent}</span>`;
+
+            let contentHTML = '';
+            if (item.ch === '[main]') contentHTML = `<div class="log-line" style="color:${displayColor}">${nameLabel}${textHTML}</div>`;
+            else if (item.ch === '[other]') contentHTML = `<div class="other-bubble" style="background-color:${conf.bgColor}; color:${displayColor}; text-align:right;">${nameLabel}${textHTML}</div>`;
+            else {
+                const label = (item.ch === '[info]') ? '情報' : (document.getElementById(`tag-${item.ch}`)?.value || conf.label);
+                contentHTML = `<div class="block-styled" data-tag-name="${label}" style="background-color:${conf.bgColor}; color:${displayColor};"><span class="info-tag">${label}</span>${nameLabel}${textHTML}</div>`;
+            }
+
+            // --- 修正處：正確組合編輯與刪除按鈕 ---
+            const editUI = currentMode === 'edit' ? 
+                `<div class="edit-btn" onclick="makeEditable(${index})">✎</div>
+                 <div class="delete-btn" onclick="deleteLogItem(${index})">🗑</div>` : '';
+
+            wrap.innerHTML = editUI + contentHTML;
+            out.appendChild(wrap);
+        });
+        checkMerging(); // 確保每次渲染後重新檢查合併狀態
+    }
+
     function checkMerging() {
         const items = document.querySelectorAll('.log-item');
-        let lastTag = null; let lastBg = null;
+        let lastTag = null, lastBg = null;
+
         items.forEach(item => {
             const block = item.querySelector('.block-styled');
             if (block) {
-                // 統一讀取 tagName 屬性
-                const currentTag = block.dataset.tagName; 
+                // 獲取目前的標籤名稱與背景色
+                const currentTag = block.getAttribute('data-tag-name');
                 const currentBg = block.style.backgroundColor;
                 const isManualSplit = block.getAttribute('data-split') === 'true';
 
+                // 同頻道、同底色、且沒被雙擊拆分，則合併
                 if (currentTag === lastTag && currentBg === lastBg && !isManualSplit) {
                     block.setAttribute('data-merged', 'true');
                 } else {
                     block.removeAttribute('data-merged');
                 }
-                lastTag = currentTag; lastBg = currentBg;
-            } else { lastTag = null; lastBg = null; }
-        });
-    }
-
-    function firstRender() { document.getElementById('output').style.display = 'block'; document.getElementById('action-area').style.display = 'flex'; liveUpdateHeader(); liveRenderLog(); window.scrollTo({ top: document.getElementById('output').offsetTop - 30, behavior: 'smooth' }); }
-
-    function liveRenderLog() {
-        const out = document.getElementById('out-content'); 
-        out.innerHTML = '';
-        const globalShowName = document.getElementById('global-show-name')?.checked;
-        
-        rawLogData.forEach(item => {
-            const conf = channelConfigs[item.ch]; 
-            if (item.ch !== '[main]' && conf && !document.getElementById(`chk-${item.ch}`).checked) return;
-
-            const wrap = document.createElement('div'); 
-            wrap.className = 'log-item'; 
-            wrap.draggable = true;
-            wrap.addEventListener('dragstart', handleDragStart); 
-            wrap.addEventListener('dragover', handleDragOver); 
-            wrap.addEventListener('dragleave', handleDragLeave); 
-            wrap.addEventListener('drop', handleDrop); 
-            wrap.addEventListener('dragend', handleDragEnd);
-            
-            // 雙擊拆分功能
-            wrap.addEventListener('dblclick', function() {
-                const block = this.querySelector('.block-styled');
-                if (block) {
-                    const isSplit = block.getAttribute('data-split') === 'true';
-                    if (isSplit) block.removeAttribute('data-split');
-                    else block.setAttribute('data-split', 'true');
-                    checkMerging();
-                }
-            });
-
-            const displayColor = charColorMap[item.name] || "#4a4a4a";
-            const isEnding = (item.ch === '[main]' && item.raw.match(/END|結局|劇本通關/i));
-            const nameLabel = (item.ch === '[other]' || (globalShowName && item.name)) 
-                ? `<span class="char-name-label" style="color:${displayColor}">${item.name}</span>` : '';
-
-            if (isEnding) {
-                wrap.innerHTML = `<div class="ending-text">${item.raw.trim().replace(/[\s　]+/g, ' ')}</div>`; 
-                wrap.draggable = false;
-            } else if (item.ch === '[main]') {
-                wrap.innerHTML = `<div class="log-line" style="color:${(item.name===""||item.name==="system")?"var(--text-color)":displayColor}">${nameLabel}${item.html}</div>`;
-            } else if (item.ch === '[other]') {
-                wrap.innerHTML = `<div class="other-bubble" style="background-color:${conf.bgColor}; color:${displayColor}; text-align:right;">${nameLabel}${item.html}</div>`;
+                lastTag = currentTag; 
+                lastBg = currentBg;
             } else {
-                const label = (item.ch === '[info]') ? '情報' : (document.getElementById(`tag-${item.ch}`)?.value || conf.label);
-                wrap.innerHTML = `
-                    <div class="block-styled" data-tagName="${label}" style="background-color:${conf.bgColor}; color:${displayColor};">
-                        <span class="info-tag">${label}</span>
-                        ${nameLabel}${item.html}
-                    </div>`;
+                // 如果中間夾了主頻道或雜談，重置合併狀態
+                lastTag = null; 
+                lastBg = null;
             }
-            out.appendChild(wrap);
         });
-        checkMerging();
     }
+
+    function firstRender() { document.getElementById('output').style.display = 'block'; document.getElementById('action-area').style.display = 'flex'; liveUpdateHeader(); liveRenderLog(); window.scrollTo({ top: document.getElementById('output').offsetTop - 30, behavior: 'smooth' }); saveToLocal(); }
 
     function liveUpdateHeader() {
         if(document.getElementById('output').style.display !== 'block') return;
-        const sName = document.getElementById('scenario-name').value.trim();
-        const titleEl = document.getElementById('out-title');
-        if (sName) {
-            titleEl.innerText = sName;
-            titleEl.style.display = 'block';
-            document.title = sName;
-        } else {
-            titleEl.style.display = 'none';
-            document.title = 'TRPG Log';
-        }
+        const sName = document.getElementById('scenario-name').value.trim(), titleEl = document.getElementById('out-title');
+        titleEl.innerText = sName || ''; titleEl.style.display = sName ? 'block' : 'none';
         document.getElementById('out-intro').innerText = document.getElementById('intro-text').value;
         const img = document.getElementById('image-preview').querySelector('img');
         document.getElementById('out-img').innerHTML = img ? `<img src="${img.src}" style="max-width:50%; border-radius:12px;">` : '';
-        const kp = document.getElementById('kp-name').value.trim();
-        const ho = document.getElementById('ho-info').value;
         let infoBarHTML = '';
-        if (kp) { infoBarHTML += `<div class="info-line"><strong style="color:var(--primary-color); margin-right:8px;">KP</strong>  ${kp}</div>`; }
-        infoBarHTML += formatHO(ho);
+        const kp = document.getElementById('kp-name').value.trim();
+        if (kp) infoBarHTML += `<div class="info-line" style="color:var(--primary-color)"><strong style="margin-right:12px; min-width:40px;">KP</strong><span>${kp}</span></div>`;
+        hoList.forEach(item => {
+            if(item.ho || item.pl) infoBarHTML += `<div class="info-line" style="color:${item.color}"><strong style="margin-right:12px; min-width:40px;">${item.ho}</strong><span>${item.pl}</span></div>`;
+        });
         const infoBarEl = document.getElementById('out-info-bar');
-        if (infoBarHTML.trim() === '') { infoBarEl.style.display = 'none'; } else { infoBarEl.style.display = 'block'; infoBarEl.innerHTML = infoBarHTML; }
-    }
-
-    function formatHO(text) {
-        return text.split('\n').map(line => {
-            const t = line.trim(); 
-            if (!t) return '';
-            const m = t.match(/^(HO\s*[^\s]+)\s+(.+)/i);
-            if (m) { 
-                const hoTag = m[1].toUpperCase(); 
-                const playerName = m[2];           
-                const color = charColorMap[playerName] || 'var(--primary-color)'; 
-                return `<div class="info-line"><strong style="color:${color}; margin-right:12px;">${hoTag}</strong><span>${playerName}</span></div>`;
-            }
-            return `<div class="info-line">${t}</div>`;
-        }).join('');
+        infoBarEl.innerHTML = infoBarHTML; infoBarEl.style.display = infoBarHTML ? 'block' : 'none';
     }
 
     function downloadHTML() {
-        const title = document.getElementById('scenario-name').value || 'Log';
-        const content = document.getElementById('output').innerHTML;
-        const style = document.querySelector('style').innerHTML;
-        const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>${style} #output{display:block;border:none;padding:20px;} .no-print, .log-item { cursor: default; } .dragging { opacity: 1; transform: none; } </style></head><body data-theme="${document.body.getAttribute('data-theme')}"><div class="container">${content}</div></body></html>`;
+        const title = document.getElementById('scenario-name').value || 'Log', content = document.getElementById('output').innerHTML, style = document.querySelector('style').innerHTML, currentTheme = document.body.getAttribute('data-theme');
+        const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>${style} #output{display:block;border:none;padding:20px;} .no-print { display:none !important; } .log-item { cursor: default; } .edit-btn, .mode-switcher { display: none !important; } </style></head><body data-theme="${currentTheme}"><div class="container">${content}</div></body></html>`;
         const blob = new Blob([fullHTML], { type: 'text/html' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${title}.html`; a.click();
+    }
+
+    function rgbToHex(rgb) { if (!rgb || !rgb.startsWith('rgb')) return rgb; const res = rgb.match(/\d+/g).map(x => parseInt(x).toString(16).padStart(2, '0')); return `#${res.join('')}`; }
+    function handleFileSelect(i) { if (i.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:100%; border-radius:12px;">`; if(document.getElementById('output').style.display === 'block') liveUpdateHeader(); saveToLocal(); }; r.readAsDataURL(i.files[0]); } }
+
+    document.getElementById('html-file').addEventListener('change', e => {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const doc = new DOMParser().parseFromString(ev.target.result, 'text/html');
+            charColorMap = {}; channelConfigs = {}; rawLogData = [];
+            const currentTheme = document.body.getAttribute('data-theme') || 'light';
+            charColorMap["KP（空白）"] = THEME_PRESETS[currentTheme].kpText;
+            doc.querySelectorAll('p').forEach(p => {
+                const spans = p.querySelectorAll('span');
+                if (spans.length >= 3) {
+                    const ch = spans[0].innerText.trim(), name = spans[1].innerText.trim();
+                    if (ch && !channelConfigs[ch]) {
+                        let finalLabel = ch.replace(/[\[\]]/g, '');
+                        if (finalLabel.toLowerCase() === 'info') finalLabel = '情報';
+                        else if (finalLabel.toLowerCase() === 'other') finalLabel = '雜談';
+                        channelConfigs[ch] = { label: finalLabel, bgColor: (ch === '[info]') ? THEME_PRESETS[currentTheme].infoBg : (ch === '[other]') ? THEME_PRESETS[currentTheme].otherBg : THEME_PRESETS[currentTheme].customBg, checked: (ch !== '[other]') };
+                    }
+                    if (name && name !== "system" && !charColorMap[name]) charColorMap[name] = rgbToHex(p.style.color) || "#4a4a4a";
+                    rawLogData.push({ ch, name, html: spans[2].innerHTML, raw: spans[2].innerText });
+                }
+            });
+            renderConfigPanel(); saveToLocal();
+        };
+        reader.readAsText(file, "UTF-8");
+    });
+
+    function renderConfigPanel() {
+        document.getElementById('config-panel').style.display = 'block';
+        const chContainer = document.getElementById('channel-options'); chContainer.innerHTML = '';
+        Object.keys(channelConfigs).forEach(ch => {
+            if (ch === '[main]') return;
+            const conf = channelConfigs[ch];
+            const div = document.createElement('div'); div.className = 'channel-item';
+            div.innerHTML = `
+                <input type="checkbox" id="chk-${ch}" ${conf.checked?'checked':''} onchange="channelConfigs['${ch}'].checked=this.checked; liveRenderLog(); saveToLocal();">
+                <span class="channel-name">${ch.replace(/[\[\]]/g,'')}</span>
+                <input type="text" class="channel-tag-input" id="tag-${ch}" value="${conf.label}" oninput="liveRenderLog(); saveToLocal();">
+                <div class="color-pill" style="margin-left:auto;">
+                    <span style="font-size:12px; opacity:0.7;">底色</span>
+                    <input type="color" id="cp-ch-${ch}" value="${conf.bgColor.substring(0,7)}" oninput="updateChannelColor('${ch}', this.value, 'picker')">
+                    <input type="text" class="hex-field" id="ct-ch-${ch}" value="${conf.bgColor}" oninput="updateChannelColor('${ch}', this.value, 'text')">
+                </div>`;
+            chContainer.appendChild(div);
+        });
+        const charContainer = document.getElementById('character-colors'); charContainer.innerHTML = '';
+        Object.keys(charColorMap).forEach(name => {
+            const div = document.createElement('div'); div.className = 'channel-item';
+            div.innerHTML = `
+                <span style="flex:1; font-weight:bold;">${name}</span>
+                <div class="color-pill">
+                    <input type="color" id="cp-${name}" value="${charColorMap[name]}" oninput="syncCharColor('${name}', this.value, 'picker')">
+                    <input type="text" class="hex-field" id="ct-${name}" value="${charColorMap[name]}" oninput="syncCharColor('${name}', this.value, 'text')">
+                </div>`;
+            charContainer.appendChild(div);
+        });
+    }
+
+    function updateChannelColor(ch, val, source) { 
+        channelConfigs[ch].bgColor = val; 
+        if(source === 'picker') document.getElementById(`ct-ch-${ch}`).value = val; else document.getElementById(`cp-ch-${ch}`).value = val;
+        liveRenderLog(); saveToLocal(); 
+    }
+    function syncCharColor(name, val, source) { 
+        charColorMap[name] = val; 
+        if (source === 'picker') document.getElementById(`ct-${name}`).value = val; else if (val.startsWith('#')) document.getElementById(`cp-${name}`).value = val.substring(0,7);
+        saveToLocal(); 
     }
 </script>
 </body>
