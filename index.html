@@ -69,32 +69,41 @@
 
         #output { margin-top: 60px; padding: 50px; border: 1px solid var(--border-color); background: var(--container-bg); display: none; border-radius: 25px; }
         .log-item { position: relative; }
-        .edit-btn { position: absolute; left: -50px; top: 10px; width: 35px; height: 35px; border-radius: 50%; background: var(--container-bg); border: 1.5px solid var(--border-color); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--edit-color); opacity: 0; transition: 0.2s; z-index: 10; font-size: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        [data-mode="edit"] .log-item:hover .edit-btn { opacity: 1; }
-        .delete-btn {
-            position: absolute;
-            left: -50px;
-            top: 50px; /* 放在編輯筆下方 */
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background: var(--container-bg);
-            border: 1.5px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: #e74c3c; /* 紅色 */
-            opacity: 0;
-            transition: 0.2s;
-            z-index: 10;
-            font-size: 16px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        .edit-tools{
+            position:absolute;
+            left:-55px;
+            top:10px;
+            display:flex;
+            flex-direction:column;
+            gap:8px;
+            opacity:0;
         }
-        [data-mode="edit"] .log-item:hover .delete-btn { opacity: 1; }
 
-        .text-content { outline: none; display: inline-block; width: 100%; }
-        [data-mode="edit"] .text-content:focus { background: rgba(230, 126, 34, 0.05); border-radius: 8px; }
+        [data-mode="edit"] .log-item:hover .edit-tools{
+            opacity:1;
+        }
+
+        .edit-tools button{
+            width:35px;
+            height:35px;
+            border-radius:50%;
+            color:#e67e22;
+            border:1.5px solid var(--border-color);
+            background:var(--container-bg);
+            cursor:pointer;
+            font-size:15px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            box-shadow:0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .text-content { 
+            outline: none;
+            display: block;
+            width: 100%;
+        }
+            [data-mode="edit"] .text-content:focus { background: rgba(230, 126, 34, 0.05); border-radius: 8px; }
 
         .log-line { margin-bottom: 1.8em; word-wrap: break-word; font-size: 15px; }
         .char-name-label { display: block; font-weight: bold; margin-bottom: 2px; font-size: 0.95em; }
@@ -124,8 +133,26 @@
             padding-bottom: 5px !important;
         }
 
-        .info-bar { background-color: transparent; padding: 25px; border-radius: 15px; margin-bottom: 50px; border: none; }
-        .info-line { display: flex; align-items: center; margin-bottom: 12px; font-size: 16px; font-weight: bold; }
+        /* 讓資訊列的間距與字級完全貼合內文 */
+        .info-bar {
+            padding: 20px 0; /* 縮減內部填充 */
+            margin-bottom: 30px; /* 資訊欄與下方內文的距離 */
+            border-bottom: 1.5px solid var(--border-color); /* 添加分隔線 */
+        }
+
+        .info-line {
+            display: flex;
+            align-items: baseline; /* 讓文字對齊基準線 */
+            margin-bottom: 4px !important; /* 強制縮小每一行的下間距 */
+            font-size: 15px !important; /* 調整成跟內文一樣大 */
+            line-height: 1.6 !important; /* 緊湊的行高 */
+        }
+
+        .info-line strong {
+            min-width: 50px; /* 標籤寬度 */
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
 
         .file-upload-wrapper { text-align: center; padding: 55px 30px; border: 2.5px dashed var(--border-color); border-radius: 20px; background: rgba(0,0,0,0.01); margin: 40px 0; transition: 0.3s; }
         .file-upload-wrapper label { font-size: 18px; margin-bottom: 25px; color: var(--primary-color); opacity: 0.9; }
@@ -136,6 +163,11 @@
         /* 編輯模式下的滑鼠手勢 */
         [data-mode="edit"] .log-item { cursor: grab; }
         [data-mode="edit"] .log-item:active { cursor: grabbing; }
+        /* 編輯文字時改為 I 字形游標 */
+        [data-mode="edit"] .text-content[contenteditable="true"] {
+            cursor: text;
+            user-select: text;
+        }
 
         /* 拖拽中的透明度變化 */
         .log-item.dragging { opacity: 0.4; border: 2px dashed var(--primary-color); }
@@ -315,6 +347,7 @@
 
     window.onload = function() { loadFromLocal(); };
 
+    // 新增：監聽 Ctrl+V 貼上圖片功能
     window.addEventListener('paste', e => {
         // 檢查剪貼簿中是否有圖片
         const item = Array.from(e.clipboardData.items).find(x => x.type.startsWith('image'));
@@ -472,9 +505,11 @@
         const out = document.getElementById('out-content'); out.innerHTML = '';
         const globalShowName = document.getElementById('global-show-name')?.checked;
         const currentMode = document.body.getAttribute('data-mode');
+        
         rawLogData.forEach((item, index) => {
             const conf = channelConfigs[item.ch]; 
-            if (item.ch !== '[main]' && conf && !document.getElementById(`chk-${item.ch}`)?.checked) return;
+            if (item.ch !== '[main]' && conf && !conf.checked) return;
+            
             const wrap = document.createElement('div'); 
             wrap.className = 'log-item'; wrap.dataset.index = index;
 
@@ -485,7 +520,6 @@
                 wrap.addEventListener('dragleave', handleDragLeave);
                 wrap.addEventListener('drop', handleDrop);
                 wrap.addEventListener('dragend', handleDragEnd);
-                
                 wrap.addEventListener('dblclick', function() {
                     const block = this.querySelector('.block-styled');
                     if (block) {
@@ -503,25 +537,84 @@
             const shouldShowName = (item.ch === '[other]' || (globalShowName && item.name && item.name !== "system"));
             const nameLabel = shouldShowName ? `<span class="char-name-label" style="color:${displayColor}">${item.name}</span>` : '';
             const parsedContent = parseCustomMarkdown(item.html);
-            const textHTML = `<span class="text-content">${parsedContent}</span>`;
+            const alignStyle = item.align === "center" ? "text-align:center;" : "";
+            const textHTML = `<div class="text-content" >${parsedContent}</div>`;
 
             let contentHTML = '';
-            if (item.ch === '[main]') contentHTML = `<div class="log-line" style="color:${displayColor}">${nameLabel}${textHTML}</div>`;
-            else if (item.ch === '[other]') contentHTML = `<div class="other-bubble" style="background-color:${conf.bgColor}; color:${displayColor}; text-align:right;">${nameLabel}${textHTML}</div>`;
+
+          
+            // 處理 [main] 頻道與結局偵測
+            if (item.ch === '[main]') {
+                // 核心修正：不論是不是結局，都先強力去除原始 HTML 裡的「全形/半形」空格與換行
+                // 這樣 normal 對話就不會因為原始 Log 有空格而歪掉
+                let cleanText = item.html
+                    .replace(/&nbsp;/g, '')                     // 1. 移除 HTML 空格
+                    // 2. 移除「冒號後」的所有全形或半形空格
+                    .replace(/：[　\s]*/g, '：')                 
+                    .replace(/:[　\s]*/g, ':')                   
+                    // 3. 核心：移除「換行標籤後」的所有全形或半形空格
+                    .replace(/<br\s*\/?>[　\s]*/gi, '<br>')     
+                    // 4. 移除「整段對話」開頭的空格
+                    .replace(/^[　\s]+/g, '')                   
+                    // 5. 移除「整段對話」結尾的空格
+                    .replace(/[　\s]+$/g, '');
+                // 判定是否為結局
+                const isKPOrSystem = item.name.includes("KP") || item.name === "" || item.name === "system";
+                const hasKeyWord = /結局|ENDING|END|FIN|通關/i.test(cleanText);
+                const noMarkers = !/[「」""。]/.test(cleanText);
+
+                if (isKPOrSystem && hasKeyWord && noMarkers && cleanText !== "") {
+                    // 結局標題樣式 (使用清洗過的 cleanText)
+                    const endingHTML = `<span class="text-content">${parseCustomMarkdown(cleanText)}</span>`;
+                    contentHTML = `<div class="log-line ending-text"style="color:${displayColor}; text-align:center;font-weight:900;font-size:1.3em;margin:40px 0;padding:20px 15px;background:rgba(128,128,128,0.08);border-radius:10px;border-top:2px solid ${displayColor};border-bottom:2px solid ${displayColor};letter-spacing:3px;">${endingHTML}</div>`;
+                } else {
+                    // 普通對話：也使用清洗過的 cleanText，這樣前端才不會有空格
+                    const regularHTML = parseCustomMarkdown(cleanText);
+                    contentHTML = `<div class="log-line" style="color:${displayColor}; ${alignStyle}">
+                        ${nameLabel}
+                        <span class="text-content">${regularHTML}</span>
+                        </div>`;
+                }
+            }
+            
+            // 處理 [other] 頻道
+            else if (item.ch === '[other]') {
+                contentHTML = `<div class="other-bubble" style="background-color:${conf.bgColor}; color:${displayColor}; text-align:right;">${nameLabel}${textHTML}</div>`;
+            } 
+            // 處理其餘區塊頻道
             else {
                 const label = (item.ch === '[info]') ? '情報' : (document.getElementById(`tag-${item.ch}`)?.value || conf.label);
-                contentHTML = `<div class="block-styled" data-tag-name="${label}" style="background-color:${conf.bgColor}; color:${displayColor};"><span class="info-tag">${label}</span>${nameLabel}${textHTML}</div>`;
+                contentHTML = `<div class="block-styled" data-tag-name="${label}"
+                    style="background-color:${conf.bgColor}; color:${displayColor};">
+                    <span class="info-tag">${label}</span>
+                    ${nameLabel}
+                    <span class="text-content" style="${alignStyle}">${parsedContent}</span>
+                    </div>`;
             }
 
-            // --- 修正處：正確組合編輯與刪除按鈕 ---
+            // 組合編輯與刪除按鈕
             const editUI = currentMode === 'edit' ? 
-                `<div class="edit-btn" onclick="makeEditable(${index})">✎</div>
-                 <div class="delete-btn" onclick="deleteLogItem(${index})">🗑</div>` : '';
+            `<div class="edit-tools">
+                <button onclick="makeEditable(${index})">✎</button>
+                <button onclick="deleteLogItem(${index})">🗑</button>
+                <button onclick="toggleCenter(${index})">≡</button>
+            </div>` : '';
 
             wrap.innerHTML = editUI + contentHTML;
             out.appendChild(wrap);
         });
-        checkMerging(); // 確保每次渲染後重新檢查合併狀態
+        checkMerging();
+    }
+
+    function toggleCenter(index) {
+        const item = rawLogData[index];
+        
+        if (!item.align) item.align = "left";
+        
+        item.align = (item.align === "center") ? "left" : "center";
+        
+        saveToLocal();
+        liveRenderLog();
     }
 
     function checkMerging() {
@@ -651,5 +744,4 @@
     }
 </script>
 </body>
-
 </html>
