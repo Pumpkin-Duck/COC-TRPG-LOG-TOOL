@@ -315,6 +315,22 @@
 
     window.onload = function() { loadFromLocal(); };
 
+    window.addEventListener('paste', e => {
+        // 檢查剪貼簿中是否有圖片
+        const item = Array.from(e.clipboardData.items).find(x => x.type.startsWith('image'));
+        if (item) {
+            const file = item.getAsFile();
+            const reader = new FileReader();
+            reader.onload = ev => {
+                // 將圖片預覽顯示在對應區塊
+                document.getElementById('image-preview').innerHTML = `<img src="${ev.target.result}" style="max-width:100%; max-height:100%; border-radius:12px;">`;
+                // 同步儲存到本地空間
+                saveToLocal();
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
     function parseCustomMarkdown(text) {
         if (!text) return "";
         // 先處理換行，再處理 Markdown 符號
@@ -635,4 +651,5 @@
     }
 </script>
 </body>
+
 </html>
