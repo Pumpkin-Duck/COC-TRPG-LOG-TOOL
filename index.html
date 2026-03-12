@@ -50,8 +50,30 @@
         .row { display: flex; gap: 40px; margin-bottom: 25px; align-items: flex-start; width: 100%; }
         .col-half { flex: 1; min-width: 0; }
 
-        .color-pill { display: flex; align-items: center; gap: 10px; background: #fff; padding: 6px 15px; border-radius: 50px; border: 1.2px solid var(--border-color); box-shadow: 0 2px 6px rgba(0,0,0,0.03); height: 45px; flex-shrink: 0; }
-        [data-theme="dark"] .color-pill { background: #2a2a2a; }
+        .color-pill {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            padding: 8px 15px;
+            border-radius: 20px; /* 稍微減小圓角，讓長方形感出來一點點 */
+            border: 1.2px solid var(--border-color);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+        /* 統一設定面板標題與上方 label 的風格 */
+        .config-title {
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: var(--primary-color);
+            font-size: 16px;
+            display: block;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(166, 124, 82, 0.2); /* 淡淡的分隔線 */
+            margin-top: 30px;
+        }
+
+        [data-theme="dark"] .color-pill {
+            background: #2a2a2a;
+        }
         input[type="color"] { width: 22px; height: 22px; border: none; cursor: pointer; background: none; padding: 0; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
         input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
         .hex-field { border: none !important; background: transparent !important; margin-bottom: 0 !important; padding: 0 !important; width: 75px !important; font-family: monospace; font-size: 14px !important; color: inherit !important; font-weight: bold; }
@@ -108,7 +130,7 @@
         .log-line { margin-bottom: 1.8em; word-wrap: break-word; font-size: 15px; }
         .char-name-label { display: block; font-weight: bold; margin-bottom: 2px; font-size: 0.95em; }
         .other-bubble { width: fit-content; max-width: 75%; margin-left: auto; padding: 15px 25px; border-radius: 22px 22px 4px 22px; text-align: right; font-size: 15px; margin-bottom: 1.6em; border-right: 6px solid var(--secondary-color); background: var(--bar-bg); }
-        .block-styled { padding: 30px 35px; border-radius: 15px; margin: 20px 0; border-left: 10px solid var(--primary-color); transition: none; }
+        .block-styled { padding: 30px 35px; border-radius: 15px; margin: 20px 0; border-left: 10px solid ; transition: none; }
         .info-tag { font-weight: bold; color: var(--primary-color); font-size: 13px; display: block; margin-bottom: 12px; letter-spacing: 1px; }
 
         /* 當區塊被標記為合併時：去掉上方圓角、去掉上方邊框、去掉上方間距 */
@@ -135,9 +157,11 @@
 
         /* 讓資訊列的間距與字級完全貼合內文 */
         .info-bar {
-            padding: 20px 0; /* 縮減內部填充 */
-            margin-bottom: 30px; /* 資訊欄與下方內文的距離 */
-            border-bottom: 1.5px solid var(--border-color); /* 添加分隔線 */
+           padding: 10px 0;    /* 縮小上下內距 */
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 40px; /* 這就是分隔線上的那行空白感 */
+            margin-bottom: 40px;  /* 分隔線下方的空白，與內文區隔 */
         }
 
         .info-line {
@@ -197,8 +221,15 @@
         <div class="row">
             <div class="col-half">
                 <label>KP 資訊</label>
-                <input type="text" id="kp-name" placeholder="KP 名稱" oninput="saveToLocal()" style="margin:0;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="kp-name" placeholder="KP 名稱" oninput="saveToLocal(); liveUpdateHeader();" style="margin:0; flex: 1;">
+                    <div class="color-pill">
+                        <input type="color" id="kp-color" value="#a67c52" oninput="saveToLocal(); liveUpdateHeader();">
+                        <input type="text" class="hex-field" id="kp-color-text" value="#a67c52" style="width:70px !important;" oninput="document.getElementById('kp-color').value=this.value; saveToLocal(); liveUpdateHeader();">
+                    </div>
+                </div>
             </div>
+            
             <div class="col-half">
                 <label>HO 與 PL 資訊</label>
                 <div id="ho-editor-list"></div>
@@ -211,17 +242,26 @@
             <input type="file" id="html-file" accept=".html">
         </div>
         
-        <div id="config-panel" class="config-panel">
-            <div class="config-title">
-                <span>頻道與顏色設定</span>
-                <label style="font-size: 14px; display: flex; align-items: center; gap: 8px; margin-bottom: 0;">
-                    <input type="checkbox" id="global-show-name" checked onchange="liveRenderLog(); saveToLocal();"> 顯示名字 
-                </label>
-            </div>
-            <div id="channel-options"></div>
-            <div class="config-title" style="margin-top:30px;">角色對話顏色調整</div>
-            <div id="character-colors" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;"></div>
+        <div style="margin-top: 25px; display: flex; align-items: center; justify-content: center; gap: 15px;" class="no-print">
+            <label style="margin-bottom: 0; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="global-show-name" checked onchange="liveRenderLog(); saveToLocal();"> 
+                <span>顯示對話名字</span>
+            </label>
         </div>
+
+        <details class="config-panel no-print" id="config-panel" style="margin-top: 20px; cursor: pointer;">
+            <summary style="text-align: center; color: var(--primary-color); font-weight: bold; list-style: none; padding: 10px; border: 1.5px solid var(--border-color); border-radius: 12px; background: var(--container-bg);">
+                🎨 展開進階顏色與頻道設定
+            </summary>
+            
+            <div style="cursor: default; padding: 10px 0;">
+                <div class="config-title">頻道與顏色設定</div>
+                <div id="channel-options"></div>
+                
+                <div class="config-title">角色對話顏色調整</div>
+                <div id="character-colors" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;"></div>
+            </div>
+        </details>
     </div>
 
     <button class="generate-btn no-print" onclick="firstRender()">輸出團錄預覽</button>
@@ -581,17 +621,31 @@
             else if (item.ch === '[other]') {
                 contentHTML = `<div class="other-bubble" style="background-color:${conf.bgColor}; color:${displayColor}; text-align:right;">${nameLabel}${textHTML}</div>`;
             } 
-            // 處理其餘區塊頻道
+          
+            // 處理其餘區塊頻道 (如：情報、系統、自訂標籤)
             else {
                 const label = (item.ch === '[info]') ? '情報' : (document.getElementById(`tag-${item.ch}`)?.value || conf.label);
-                contentHTML = `<div class="block-styled" data-tag-name="${label}"
-                    style="background-color:${conf.bgColor}; color:${displayColor};">
-                    <span class="info-tag">${label}</span>
-                    ${nameLabel}
-                    <span class="text-content" style="${alignStyle}">${parsedContent}</span>
+
+                // 判斷基礎顏色
+                let dynamicColor = conf.borderColor || "var(--primary-color)";
+
+                // 如果頻道沒自訂邊框 (或維持預設)，則嘗試偵測 PL 顏色
+                if (!conf.borderColor || conf.borderColor === "var(--primary-color)") {
+                    const isKP = item.name.toUpperCase().includes("KP");
+                    const isEmpty = !item.name.trim() || item.name === "system";
+                    if (!isKP && !isEmpty) {
+                        dynamicColor = charColorMap[item.name] || "var(--primary-color)";
+                    }
+                }
+
+                contentHTML = `
+                    <div class="block-styled" data-tag-name="${label}"
+                        style="background-color:${conf.bgColor}; color:${displayColor}; border-left-color:${dynamicColor} !important;">
+                        <span class="info-tag" style="color:${dynamicColor} !important;">${label}</span>
+                        ${nameLabel}
+                        <span class="text-content" style="${alignStyle}">${parsedContent}</span>
                     </div>`;
             }
-
             // 組合編輯與刪除按鈕
             const editUI = currentMode === 'edit' ? 
             `<div class="edit-tools">
@@ -619,30 +673,72 @@
 
     function checkMerging() {
         const items = document.querySelectorAll('.log-item');
-        let lastTag = null, lastBg = null;
+        let i = 0;
 
-        items.forEach(item => {
+        while (i < items.length) {
+            const item = items[i];
             const block = item.querySelector('.block-styled');
-            if (block) {
-                // 獲取目前的標籤名稱與背景色
-                const currentTag = block.getAttribute('data-tag-name');
-                const currentBg = block.style.backgroundColor;
-                const isManualSplit = block.getAttribute('data-split') === 'true';
 
-                // 同頻道、同底色、且沒被雙擊拆分，則合併
-                if (currentTag === lastTag && currentBg === lastBg && !isManualSplit) {
-                    block.setAttribute('data-merged', 'true');
-                } else {
-                    block.removeAttribute('data-merged');
-                }
-                lastTag = currentTag; 
-                lastBg = currentBg;
-            } else {
-                // 如果中間夾了主頻道或雜談，重置合併狀態
-                lastTag = null; 
-                lastBg = null;
+            if (!block) {
+                i++;
+                continue;
             }
-        });
+
+            // --- 1. 找出這一組「合併塊」的範圍 ---
+            let group = [item];
+            let j = i + 1;
+            const currentTag = block.getAttribute('data-tag-name');
+            const currentBg = block.style.backgroundColor;
+
+            while (j < items.length) {
+                const nextBlock = items[j].querySelector('.block-styled');
+                if (nextBlock && 
+                    nextBlock.getAttribute('data-tag-name') === currentTag && 
+                    nextBlock.style.backgroundColor === currentBg &&
+                    nextBlock.getAttribute('data-split') !== 'true') {
+                    group.push(items[j]);
+                    j++;
+                } else {
+                    break;
+                }
+            }
+
+            // --- 2. 在這一組中「搜尋」第一個符合條件的角色顏色 ---
+            let groupColor = null;
+            for (let member of group) {
+                const dataIndex = member.dataset.index;
+                const logEntry = rawLogData[dataIndex];
+                
+                // 排除條件：包含 KP (不分大小寫)、system、或是空名字
+                const isNotKP = !logEntry.name.toUpperCase().includes("KP");
+                const isNotEmpty = logEntry.name.trim() !== "" && logEntry.name !== "system";
+
+                if (isNotKP && isNotEmpty) {
+                    groupColor = charColorMap[logEntry.name];
+                    break; // 找到第一個角色了，跳出循環
+                }
+            }
+
+            // --- 3. 決定最終邊框顏色 ---
+            // 優先序：頻道自訂邊色 > 剛才搜到的角色色 > 預設咖啡色
+            const conf = channelConfigs[rawLogData[item.dataset.index].ch];
+            const finalColor = (conf.borderColor && conf.borderColor !== "var(--primary-color)") 
+                            ? conf.borderColor 
+                            : (groupColor || "var(--primary-color)");
+
+            // --- 4. 統一套用顏色與合併狀態 ---
+            group.forEach((member, idx) => {
+                const memberBlock = member.querySelector('.block-styled');
+                if (idx > 0) memberBlock.setAttribute('data-merged', 'true');
+                else memberBlock.removeAttribute('data-merged');
+
+                memberBlock.style.setProperty('border-left-color', finalColor, 'important');
+                const infoTag = memberBlock.querySelector('.info-tag');
+                if (infoTag) infoTag.style.color = finalColor;
+            });
+
+            i = j; // 跳到下一組
+        }
     }
 
     function firstRender() { document.getElementById('output').style.display = 'block'; document.getElementById('action-area').style.display = 'flex'; liveUpdateHeader(); liveRenderLog(); window.scrollTo({ top: document.getElementById('output').offsetTop - 30, behavior: 'smooth' }); saveToLocal(); }
@@ -656,7 +752,12 @@
         document.getElementById('out-img').innerHTML = img ? `<img src="${img.src}" style="max-width:50%; border-radius:12px;">` : '';
         let infoBarHTML = '';
         const kp = document.getElementById('kp-name').value.trim();
-        if (kp) infoBarHTML += `<div class="info-line" style="color:var(--primary-color)"><strong style="margin-right:12px; min-width:40px;">KP</strong><span>${kp}</span></div>`;
+        // 讀取剛剛新增的顏色選擇器的值
+        const kpColor = document.getElementById('kp-color').value; 
+        
+        if (kp) {
+            infoBarHTML += `<div class="info-line" style="color:${kpColor}"><strong style="margin-right:12px; min-width:40px;">KP</strong><span>${kp}</span></div>`;
+        }
         hoList.forEach(item => {
             if(item.ho || item.pl) infoBarHTML += `<div class="info-line" style="color:${item.color}"><strong style="margin-right:12px; min-width:40px;">${item.ho}</strong><span>${item.pl}</span></div>`;
         });
@@ -708,34 +809,54 @@
             if (ch === '[main]') return;
             const conf = channelConfigs[ch];
             const div = document.createElement('div'); div.className = 'channel-item';
+            // 在 renderConfigPanel 裡面修改頻道設定的 HTML
             div.innerHTML = `
                 <input type="checkbox" id="chk-${ch}" ${conf.checked?'checked':''} onchange="channelConfigs['${ch}'].checked=this.checked; liveRenderLog(); saveToLocal();">
                 <span class="channel-name">${ch.replace(/[\[\]]/g,'')}</span>
                 <input type="text" class="channel-tag-input" id="tag-${ch}" value="${conf.label}" oninput="liveRenderLog(); saveToLocal();">
-                <div class="color-pill" style="margin-left:auto;">
-                    <span style="font-size:12px; opacity:0.7;">底色</span>
-                    <input type="color" id="cp-ch-${ch}" value="${conf.bgColor.substring(0,7)}" oninput="updateChannelColor('${ch}', this.value, 'picker')">
-                    <input type="text" class="hex-field" id="ct-ch-${ch}" value="${conf.bgColor}" oninput="updateChannelColor('${ch}', this.value, 'text')">
+                
+                <div class="color-pill" style="margin-left:auto; gap:12px; padding: 6px 15px; height: auto;">
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                        <span style="font-size:10px; opacity:0.6;">底色</span>
+                        <input type="color" value="${conf.bgColor.substring(0,7)}" oninput="updateChannelColor('${ch}', 'bgColor', this.value, 'picker', this)">
+                        <input type="text" class="hex-field" value="${conf.bgColor}" style="width:55px !important; font-size:11px !important; text-align:center;" oninput="updateChannelColor('${ch}', 'bgColor', this.value, 'text', this)">
+                    </div>
+                    
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                        <span style="font-size:10px; opacity:0.6;">邊色</span>
+                        <input type="color" value="${(conf.borderColor || '#a67c52').substring(0,7)}" oninput="updateChannelColor('${ch}', 'borderColor', this.value, 'picker', this)">
+                        <input type="text" class="hex-field" value="${conf.borderColor || '#a67c52'}" style="width:55px !important; font-size:11px !important; text-align:center;" oninput="updateChannelColor('${ch}', 'borderColor', this.value, 'text', this)">
+                    </div>
                 </div>`;
             chContainer.appendChild(div);
         });
         const charContainer = document.getElementById('character-colors'); charContainer.innerHTML = '';
         Object.keys(charColorMap).forEach(name => {
-            const div = document.createElement('div'); div.className = 'channel-item';
+            const color = charColorMap[name];
+            const div = document.createElement('div');
+            div.className = 'channel-item';
             div.innerHTML = `
-                <span style="flex:1; font-weight:bold;">${name}</span>
+                <span style="flex:1; font-weight:bold; color: ${color}">${name}</span>
                 <div class="color-pill">
-                    <input type="color" id="cp-${name}" value="${charColorMap[name]}" oninput="syncCharColor('${name}', this.value, 'picker')">
-                    <input type="text" class="hex-field" id="ct-${name}" value="${charColorMap[name]}" oninput="syncCharColor('${name}', this.value, 'text')">
+                    <input type="color" id="cp-${name}" value="${color}" oninput="syncCharColor('${name}', this.value, 'picker'); renderConfigPanel();">
+                    <input type="text" class="hex-field" id="ct-${name}" value="${color}" oninput="syncCharColor('${name}', this.value, 'text'); renderConfigPanel();">
                 </div>`;
             charContainer.appendChild(div);
         });
     }
-
-    function updateChannelColor(ch, val, source) { 
-        channelConfigs[ch].bgColor = val; 
-        if(source === 'picker') document.getElementById(`ct-ch-${ch}`).value = val; else document.getElementById(`cp-ch-${ch}`).value = val;
-        liveRenderLog(); saveToLocal(); 
+    function updateChannelColor(ch, key, val, source, el) { 
+        channelConfigs[ch][key] = val; 
+        
+        // 同步 UI：如果是點圓圈，就更新文字框；如果是打字，就更新圓圈
+        const parent = el.parentNode;
+        if (source === 'picker') {
+            parent.querySelector('input[type="text"]').value = val;
+        } else if (val.startsWith('#') && val.length === 7) {
+            parent.querySelector('input[type="color"]').value = val;
+        }
+        
+        liveRenderLog(); 
+        saveToLocal(); 
     }
     function syncCharColor(name, val, source) { 
         charColorMap[name] = val; 
