@@ -166,6 +166,29 @@
             margin-top: 28px;
         }
 
+        .split-tools {
+            position: absolute;
+            right: -18px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 20;
+        }
+
+        .split-tools button {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background: var(--container-bg);
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            padding: 0;
+        }
+
         .edit-tools{
             position: absolute;
             left: -55px;
@@ -639,6 +662,8 @@
     let hoList = [];
     let activeIndex = null;
     let moveSourceIndex = null;
+    let moveRangeStart = null;
+    let moveRangeEnd = null;
     let moveMode = false;
     let editingIndex = null;
 
@@ -799,36 +824,46 @@
 
     function startMoveItem(index) {
         if (document.body.getAttribute('data-mode') !== 'edit') return;
+
+        const range = getMergedRange(index);
+
         moveSourceIndex = index;
+        moveRangeStart = range.start;
+        moveRangeEnd = range.end;
         moveMode = true;
         activeIndex = index;
+
         liveRenderLog();
     }
 
     function cancelMoveMode() {
         moveSourceIndex = null;
+        moveRangeStart = null;
+        moveRangeEnd = null;
         moveMode = false;
         liveRenderLog();
     }
 
     function moveLogItem(targetIndex) {
-        if (moveSourceIndex === null || moveSourceIndex === undefined) return;
+        if (moveRangeStart === null || moveRangeEnd === null) return;
         if (targetIndex === null || targetIndex === undefined) return;
 
-        const movingItem = rawLogData[moveSourceIndex];
-        if (!movingItem) return;
+        const movingItems = rawLogData.slice(moveRangeStart, moveRangeEnd + 1);
+        if (!movingItems.length) return;
 
-        rawLogData.splice(moveSourceIndex, 1);
+        rawLogData.splice(moveRangeStart, movingItems.length);
 
         let adjustedTargetIndex = targetIndex;
-        if (moveSourceIndex < targetIndex) {
-            adjustedTargetIndex--;
+        if (moveRangeStart < targetIndex) {
+            adjustedTargetIndex -= movingItems.length;
         }
 
-        rawLogData.splice(adjustedTargetIndex, 0, movingItem);
+        rawLogData.splice(adjustedTargetIndex, 0, ...movingItems);
 
         activeIndex = adjustedTargetIndex;
         moveSourceIndex = null;
+        moveRangeStart = null;
+        moveRangeEnd = null;
         moveMode = false;
 
         liveRenderLog();
@@ -948,6 +983,7 @@
         const globalShowName = document.getElementById('global-show-name')?.checked;
         const currentMode = document.body.getAttribute('data-mode');
         let lastRenderedType = null;
+              
         
         rawLogData.forEach((item, index) => {
             const conf = channelConfigs[item.ch]; 
@@ -1016,18 +1052,25 @@
                 }
 
                 contentHTML = `
-                    <div class="block-styled" data-channel="${item.ch}" data-tag-name="${label}"
+                    <div class="block-styled"
+                        data-channel="${item.ch}"
+                        data-tag-name="${label}"
+                        data-split="${item.splitBefore ? 'true' : 'false'}"
                         style="background-color:${conf.bgColor}; color:${displayColor}; border-left-color:${dynamicColor} !important;">
                         <span class="info-tag" style="color:${dynamicColor} !important;">${label}</span>
                         ${nameLabel}
                         <div class="text-content" style="${alignStyle}">${parsedContent}</div>
                     </div>`;
             }
+
+            const showSplitLock = renderType === 'block' && isMergeCompatibleWithPrev(index);
+            const splitLocked = !!item.splitBefore;
             const editUI = (currentMode === 'edit' && index === activeIndex) ? 
             `<div class="edit-tools">
-                <button onclick="event.stopPropagation(); deleteLogItem(${index})" title="刪除">🗑</button>
                 <button onclick="event.stopPropagation(); toggleCenter(${index})" title="置中">≡</button>
                 <button onclick="event.stopPropagation(); startMoveItem(${index})" title="移動">↕</button>
+                <button onclick="event.stopPropagation(); deleteLogItem(${index})" title="刪除">🗑</button>
+                <button onclick="event.stopPropagation(); addLogItemBelow(${index})" title="新增">＋</button>
             </div>` : '';
 
             if (renderType === 'main') {
@@ -1053,13 +1096,21 @@
                 wrap.classList.add('after-ending');
             }
 
-            wrap.innerHTML = editUI + contentHTML;
+            const splitUI = (currentMode === 'edit' && showSplitLock) ? `
+                <div class="split-tools">
+                    <button onclick="event.stopPropagation(); toggleSplitBefore(${index})" title="${splitLocked ? '解除相連' : '鎖定相連'}">
+                        ${splitLocked ? '🔓' : '🔒'}
+                    </button>
+                </div>
+            ` : '';
+
+            wrap.innerHTML = editUI + splitUI + contentHTML;
 
             if (currentMode === 'edit' && moveMode) {
-                const isSamePlace = index === moveSourceIndex;
-                const isNextPlace = index === moveSourceIndex + 1;
+                const isInsideMovingGroup = moveRangeStart !== null && index >= moveRangeStart && index <= moveRangeEnd;
+                const isRightAfterMovingGroup = moveRangeEnd !== null && index === moveRangeEnd + 1;
 
-                if (!isSamePlace && !isNextPlace) {
+                if (!isInsideMovingGroup && !isRightAfterMovingGroup) {
                     out.appendChild(createInsertLine(index));
                 }
             }
@@ -1068,14 +1119,29 @@
         });
         if (currentMode === 'edit' && moveMode) {
             const tailIndex = rawLogData.length;
-            const isSamePlace = tailIndex === moveSourceIndex;
-            const isNextPlace = tailIndex === moveSourceIndex + 1;
+            const isInsideMovingGroup = moveRangeStart !== null && tailIndex >= moveRangeStart && tailIndex <= moveRangeEnd;
+            const isRightAfterMovingGroup = moveRangeEnd !== null && tailIndex === moveRangeEnd + 1;
 
-            if (!isSamePlace && !isNextPlace) {
+            if (!isInsideMovingGroup && !isRightAfterMovingGroup) {
                 out.appendChild(createInsertLine(tailIndex));
             }
         }
         checkMerging();
+    }
+
+    function toggleSplitBefore(index) {
+        if (!rawLogData[index]) return;
+        if (index <= 0) return;
+
+        rawLogData[index].splitBefore = !rawLogData[index].splitBefore;
+
+        saveToLocal();
+        liveRenderLog();
+    }
+
+    function isMergeCompatibleWithPrev(index) {
+        if (index <= 0) return false;
+        return canMergeItems(rawLogData[index - 1], rawLogData[index]);
     }
 
     function toggleCenter(index) {
@@ -1344,6 +1410,60 @@
             clearActiveItem();
         }
     });
+    function addLogItemBelow(index) {
+        const source = rawLogData[index];
+        if (!source) return;
+
+        const newItem = {
+            ch: source.ch,
+            name: source.name,
+            html: '',
+            raw: '',
+            align: 'left',
+            splitBefore: true
+        };
+
+        const newIndex = index + 1;
+        rawLogData.splice(newIndex, 0, newItem);
+
+        activeIndex = newIndex;
+        moveMode = false;
+        moveSourceIndex = null;
+
+        liveRenderLog();
+        saveToLocal();
+
+        requestAnimationFrame(() => {
+            makeEditable(newIndex);
+        });
+    }
+
+    function canMergeItems(prev, next) {
+        if (!prev || !next) return false;
+        if (prev.ch !== next.ch) return false;
+        if (next.splitBefore) return false;
+
+        const prevConf = channelConfigs[prev.ch];
+        const nextConf = channelConfigs[next.ch];
+        if (!prevConf || !nextConf) return false;
+
+        return prevConf.bgColor === nextConf.bgColor;
+    }
+
+    function getMergedRange(index) {
+        let start = index;
+        let end = index;
+
+        while (start > 0 && canMergeItems(rawLogData[start - 1], rawLogData[start])) {
+            start--;
+        }
+
+        while (end < rawLogData.length - 1 && canMergeItems(rawLogData[end], rawLogData[end + 1])) {
+            end++;
+        }
+
+        return { start, end };
+    }
 </script>
 </body>
 </html>
