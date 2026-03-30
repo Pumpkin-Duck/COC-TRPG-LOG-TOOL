@@ -3,7 +3,7 @@
 <head>
     <link rel="icon" href="icon.webp" type="image/webp">
     <meta charset="UTF-8">
-    <title>CoC TRPG 團務整理工具</title>
+    <title>CoC TRPG 團錄整理工具</title>
     <style id="dynamic-theme">
         :root {
             --bg-color: #f4f1ea;
@@ -27,15 +27,50 @@
 
         @media print {
             @page { margin: 1.2cm; }
-            body { background: white !important; color: black !important; padding: 0 !important; }
-            .container { box-shadow: none !important; max-width: 100% !important; padding: 0 !important; border: none !important; }
-            .no-print, .mode-switcher, .edit-btn, .add-ho-btn { display: none !important; }
-            #output { display: block !important; border: none !important; padding: 0 !important; }
-            .block-styled, .ending-text, .info-bar { break-inside: avoid; }
+            body { 
+                background: white !important; 
+                color: black !important; 
+                padding: 0 !important; 
+            }
+            .container { 
+                box-shadow: none !important; 
+                max-width: 100% !important; 
+                padding: 0 !important; 
+                border: none !important; 
+            }
+            .no-print, 
+            .mode-switcher, 
+            .edit-btn, 
+            .add-ho-btn { 
+                display: none !important; 
+            }
+            #output { 
+                display: block !important; 
+                border: none !important; 
+                padding: 0 !important; 
+            }
+            .block-styled, 
+            .ending-text, .info-bar { break-inside: avoid; }
         }
 
-        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: var(--bg-color); color: var(--text-color); padding: 40px 20px; margin: 0; line-height: 1.8; transition: all 0.3s ease; }
-        .container { max-width: 1100px; margin: auto; background: var(--container-bg); padding: 45px; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.05); }
+       body {
+            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 40px 130px;
+            margin: 0;
+            line-height: 1.8;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+            background: var(--container-bg);
+            padding: 45px;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.05);
+        }
         .theme-switch { position: fixed; top: 20px; right: 20px; padding: 10px 18px; border-radius: 30px; border: 1.5px solid var(--primary-color); background: var(--container-bg); color: var(--primary-color); cursor: pointer; font-weight: bold; z-index: 100; }
 
         .mode-switcher { display: inline-flex; background: #eeeae3; padding: 5px; border-radius: 50px; border: 1px solid var(--border-color); margin-right: 20px; }
@@ -90,19 +125,57 @@
         .channel-tag-input { width: 150px !important; margin: 0 !important; padding: 8px 15px !important; }
 
         #output { margin-top: 60px; padding: 50px; border: 1px solid var(--border-color); background: var(--container-bg); display: none; border-radius: 25px; }
-        .log-item { position: relative; }
-        .edit-tools{
-            position:absolute;
-            left:-55px;
-            top:10px;
-            display:flex;
-            flex-direction:column;
-            gap:8px;
-            opacity:0;
+        .log-item {
+            position: relative;
+            margin: 0;
         }
 
-        [data-mode="edit"] .log-item:hover .edit-tools{
-            opacity:1;
+        /* main 文字段落 */
+        .log-item.item-main .log-line {
+            margin-top: 0;
+            margin-bottom: 1.2em;
+        }
+
+       /* 一般 block 和 block 之間，保留清楚間距 */
+        .log-item.item-block {
+            margin-top: 18px;
+        }
+
+        /* 如果是真的合併塊第二塊以後，外層不要再多間距 */
+        .log-item.merged-follow {
+            margin-top: 0 !important;
+        }
+
+        /* main 後接 block，保留更明顯距離 */
+        .log-item.after-main.item-block {
+            margin-top: 28px;
+        }
+
+        /* block 後接 main，保留更明顯距離 */
+        .log-item.after-block.item-main {
+            margin-top: 28px;
+        }
+
+        /* ending 前後也保留明顯距離 */
+        .log-item.item-ending {
+            margin-top: 28px;
+        }
+
+        .log-item.after-ending.item-main,
+        .log-item.after-ending.item-block {
+            margin-top: 28px;
+        }
+
+        .edit-tools{
+            position: absolute;
+            left: -55px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            opacity: 1;
+            z-index: 20;
         }
 
         .edit-tools button{
@@ -120,18 +193,72 @@
             box-shadow:0 2px 5px rgba(0,0,0,0.1);
         }
 
+        /* 編輯模式下，整個區塊可點選 */
+        [data-mode="edit"] .log-item {
+            cursor: pointer;
+        }
+
+        /* 編輯文字時改為 I 字形游標 */
+        [data-mode="edit"] .text-content[contenteditable="true"] {
+            cursor: text;
+            user-select: text;
+        }
+
+        /* 被選中的區塊 */
+        .log-item.active-item {
+            outline: 1.5px dashed var(--primary-color);
+            outline-offset: 6px;
+            border-radius: 10px;
+            background: rgba(166, 124, 82, 0.04);
+        }
+
+        .log-item.move-source {
+            outline: 2px dashed #d97706;
+            outline-offset: 6px;
+            background: rgba(217, 119, 6, 0.06);
+        }
+
         .text-content { 
+            white-space: pre-wrap;
             outline: none;
             display: block;
             width: 100%;
         }
             [data-mode="edit"] .text-content:focus { background: rgba(230, 126, 34, 0.05); border-radius: 8px; }
 
-        .log-line { margin-bottom: 1.8em; word-wrap: break-word; font-size: 15px; }
-        .char-name-label { display: block; font-weight: bold; margin-bottom: 2px; font-size: 0.95em; }
-        .other-bubble { width: fit-content; max-width: 75%; margin-left: auto; padding: 15px 25px; border-radius: 22px 22px 4px 22px; text-align: right; font-size: 15px; margin-bottom: 1.6em; border-right: 6px solid var(--secondary-color); background: var(--bar-bg); }
-        .block-styled { padding: 30px 35px; border-radius: 15px; margin: 20px 0; border-left: 10px solid ; transition: none; }
-        .info-tag { font-weight: 400; color: var(--primary-color); font-size: 13px; display: block; margin-bottom: 12px; letter-spacing: 1px; }
+        .log-line { 
+            margin-bottom: 1.8em; 
+            word-wrap: break-word; 
+            font-size: 15px; 
+        }
+
+        
+        .char-name-label { 
+            display: block; 
+            font-weight: bold; 
+            margin-bottom: 2px; 
+            font-size: 0.95em; 
+        }
+        .other-bubble { 
+            width: fit-content; 
+            max-width: 75%; 
+            margin-left: auto; 
+            padding: 15px 25px; 
+            border-radius: 22px 22px 4px 22px; 
+            text-align: right; 
+            font-size: 15px; 
+            margin-bottom: 1.6em; 
+            border-right: 6px solid var(--secondary-color); 
+            background: var(--bar-bg); 
+        }
+        .block-styled { 
+            padding: 30px 35px; 
+            border-radius: 15px; 
+            margin: 0; 
+            border-left: 10px solid ; 
+            transition: none; 
+        }
+        .info-tag { font-weight: 700; color: var(--primary-color); font-size: 13px; display: block; margin-bottom: 12px; letter-spacing: 1px; }
 
         /* 當區塊被標記為合併時：去掉上方圓角、去掉上方邊框、去掉上方間距 */
         .block-styled[data-merged="true"] {
@@ -186,20 +313,186 @@
         .generate-btn { background-color: var(--primary-color); color: white; border: none; padding: 18px; border-radius: 15px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; margin-top: 10px; transition: 0.3s; box-shadow: 0 6px 15px rgba(166, 124, 82, 0.2); }
         .action-btn { background: #8fa4b3; color: white; padding: 15px 30px; border: none; border-radius: 15px; cursor: pointer; font-weight: bold; font-size: 16px; height: 60px; transition: 0.3s; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; }
         
-        /* 編輯模式下的滑鼠手勢 */
-        [data-mode="edit"] .log-item { cursor: grab; }
-        [data-mode="edit"] .log-item:active { cursor: grabbing; }
+    
         /* 編輯文字時改為 I 字形游標 */
         [data-mode="edit"] .text-content[contenteditable="true"] {
             cursor: text;
             user-select: text;
         }
 
-        /* 拖拽中的透明度變化 */
-        .log-item.dragging { opacity: 0.4; border: 2px dashed var(--primary-color); }
+       
+        .insert-anchor-line{
+            position: relative;
+            height: 0;
+            padding: 12px 0;
+            margin: -12px 0;
+            cursor: pointer;
+            user-select: none;
+            z-index: 15;
+        }
 
-        /* 拖拽經過時的上方指示線 */
-        .log-item.drag-over { border-top: 5px solid var(--secondary-color) !important; }
+        .insert-anchor-line::before{
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            border-top: 1.5px dashed var(--primary-color);
+            transform: translateY(-50%);
+            opacity: 0.9;
+        }
+
+        .insert-anchor-line span{
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--container-bg);
+            padding: 0 10px;
+            font-size: 12px;
+            color: var(--primary-color);
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .insert-anchor-line:hover::before{
+            border-top-width: 2px;
+        }
+
+        .insert-anchor-line:hover span{
+            background: #fffaf3;
+        }
+
+        @media (max-width: 1200px) {
+            body {
+                padding: 32px 60px;
+            }
+
+            .container {
+                padding: 36px;
+            }
+
+            #output {
+                padding: 36px;
+            }
+
+            .row {
+                gap: 24px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            body {
+                padding: 24px 24px;
+            }
+
+            .container {
+                padding: 26px;
+                border-radius: 16px;
+            }
+
+            #output {
+                padding: 28px;
+                border-radius: 18px;
+            }
+
+            .row {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .mode-switcher {
+                margin-right: 0;
+            }
+
+            #character-colors {
+                grid-template-columns: 1fr !important;
+                gap: 14px !important;
+            }
+
+            .channel-item {
+                flex-wrap: wrap;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .channel-name {
+                min-width: auto;
+            }
+
+            .channel-tag-input {
+                width: 100% !important;
+            }
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 16px;
+            }
+
+            .container {
+                padding: 18px;
+                border-radius: 14px;
+            }
+
+            #output {
+                padding: 18px;
+                border-radius: 14px;
+            }
+
+            h1.tool-title {
+                font-size: 24px;
+                margin-bottom: 28px;
+            }
+
+            .theme-switch {
+                top: 12px;
+                right: 12px;
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .mode-switcher {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .mode-btn {
+                flex: 1;
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                align-items: stretch !important;
+            }
+
+            .action-btn,
+            .generate-btn {
+                width: 100%;
+            }
+
+            .block-styled {
+                padding: 20px 18px;
+            }
+
+            .other-bubble {
+                max-width: 100%;
+                padding: 12px 16px;
+            }
+
+            .edit-tools {
+                left: -42px;
+                gap: 6px;
+            }
+
+            .edit-tools button {
+                width: 30px;
+                height: 30px;
+                font-size: 13px;
+            }
+        }
     </style>
 </head>
 <body data-theme="light" data-mode="view">
@@ -207,7 +500,7 @@
 <button class="theme-switch no-print" id="theme-btn" onclick="toggleTheme()">切換暗色模式</button>
 
 <div class="container">
-    <h1 class="tool-title no-print">CoC TRPG 團務整理工具</h1>
+    <h1 class="tool-title no-print">CoC TRPG 團錄整理工具</h1>
     
     <div class="input-section no-print">
         <div class="row"><div class="col-half"><label>劇本名</label><input type="text" id="scenario-name" placeholder="請輸入標題" oninput="saveToLocal()"></div></div>
@@ -286,104 +579,72 @@
 </div>
 
 <script>
-    let dragSrcEl = null; // 儲存被拖拽的原始 DOM 元素
-    let draggedGroup = []; // 儲存聯動移動的整組元素（如果區塊是合併狀態）
 
-    // 當開始拖拽時觸發
-    function handleDragStart(e) {
-        if (document.body.getAttribute('data-mode') !== 'edit') return;
-        
-        dragSrcEl = this;
-        this.classList.add('dragging');
-        
-        // 初始化群組，包含自己
-        draggedGroup = [this];
-        
-        // 1. 向上掃描：如果「自己」是被合併的（頂部圓角消失），則把上面的人拉進來
-        let prev = this.previousElementSibling;
-        while (prev && prev.querySelector('.block-styled[data-merged="true"]')) {
-            draggedGroup.unshift(prev); // 加到陣列開頭
-            prev.classList.add('dragging');
-            prev = prev.previousElementSibling;
+    function normalizeImportedText(text) {
+        if (typeof text !== 'string') return text;
+
+        text = text
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .replace(/&nbsp;/g, '')
+            .replace(/：[　\s]*/g, '：')
+            .replace(/:[　\s]*/g, ':');
+
+        const lines = text.split('\n');
+
+        while (lines.length > 0 && lines[0].trim() === '') {
+            lines.shift();
         }
-        
-        // 2. 向下掃描：如果「下面的人」是被合併的，則把下面的人拉進來
-        let next = this.nextElementSibling;
-        while (next && next.querySelector('.block-styled[data-merged="true"]')) {
-            draggedGroup.push(next); // 加到陣列末尾
-            next.classList.add('dragging');
-            next = next.nextElementSibling;
+
+        while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+            lines.pop();
         }
-        
-        e.dataTransfer.effectAllowed = 'move';
-    }
 
-    // 當元素被拖過某個位置時（必須 preventDefault 才能允許放置）
-    function handleDragOver(e) {
-        if (e.preventDefault) e.preventDefault();
-        this.classList.add('drag-over');
-        return false;
-    }
+        if (lines.length > 0) {
+            lines[0] = lines[0].replace(/^[ \t　]+/, '');
+            lines[lines.length - 1] = lines[lines.length - 1].replace(/[ \t　]+$/, '');
+        }
 
-    function handleDragLeave() {
-        this.classList.remove('drag-over');
-    }
+        return lines.join('\n');
+}
+
+   
 
     function deleteLogItem(index) {
-        if (confirm("確定要刪除這條訊息嗎？")) {
-            rawLogData.splice(index, 1);
-            liveRenderLog();
-            saveToLocal();
+    if (confirm("確定要刪除這條訊息嗎？")) {
+        rawLogData.splice(index, 1);
+
+        if (activeIndex === index) {
+            activeIndex = null;
+        } else if (activeIndex > index) {
+            activeIndex--;
         }
-    }
 
-    // 核心邏輯：當放開滑鼠時變更數據順序
-    function handleDrop(e) {
-        if (e.stopPropagation) e.stopPropagation();
-        
-        if (dragSrcEl !== this) {
-            const parent = this.parentNode;
-            const allItems = [...document.querySelectorAll('.log-item')];
-            const targetIndex = allItems.indexOf(this);
-            const sourceIndex = allItems.indexOf(dragSrcEl);
-
-            // 移動 DOM 元素位置
-            if (sourceIndex < targetIndex) {
-                parent.insertBefore(draggedGroup[0], this.nextSibling);
-                for (let i = 1; i < draggedGroup.length; i++) {
-                    parent.insertBefore(draggedGroup[i], draggedGroup[i-1].nextSibling);
-                }
-            } else {
-                parent.insertBefore(draggedGroup[0], this);
-                for (let i = 1; i < draggedGroup.length; i++) {
-                    parent.insertBefore(draggedGroup[i], draggedGroup[i-1].nextSibling);
-                }
-            }
-
-            // 重要：重新根據現在的 DOM 順序更新 rawLogData 陣列
-            const newOrder = [...document.querySelectorAll('.log-item')].map(el => rawLogData[el.dataset.index]);
-            rawLogData = newOrder;
-            
-            // 重新掃描合併狀態並存檔
-            checkMerging();
-            saveToLocal();
-            liveRenderLog(); // 重新刷新索引，確保下一動作準確
+        if (moveSourceIndex === index) {
+            moveSourceIndex = null;
+            moveMode = false;
+        } else if (moveSourceIndex > index) {
+            moveSourceIndex--;
         }
-        return false;
-    }
 
-    function handleDragEnd() {
-        document.querySelectorAll('.log-item').forEach(el => el.classList.remove('dragging', 'drag-over'));
-        draggedGroup = [];
+        liveRenderLog();
+        saveToLocal();
     }
+}
 
     let charColorMap = {};
     let channelConfigs = {};
     let rawLogData = [];
     let hoList = [];
+    let activeIndex = null;
+    let moveSourceIndex = null;
+    let moveMode = false;
+    let editingIndex = null;
+
 
     const THEME_PRESETS = {
-        light: { kpText: "#4a4a4a", infoBg: "#eeeeee", otherBg: "#cfdbe3", customBg: "#f9f9f9" },
+        light: { kpText: "#4a4a4a", infoBg: "#f9f9f9", otherBg: "#cfdbe3", customBg: "#f9f9f9" },
         dark: { kpText: "#d1d1d1", infoBg: "#2a2a2a", otherBg: "#1e2a33", customBg: "#1e1e1e" }
     };
 
@@ -499,7 +760,92 @@
         document.body.setAttribute('data-mode', mode);
         document.getElementById('btn-view').classList.toggle('active', mode === 'view');
         document.getElementById('btn-edit').classList.toggle('active', mode === 'edit');
-        liveRenderLog(); saveToLocal();
+
+        if (mode !== 'edit') {
+            activeIndex = null;
+            moveSourceIndex = null;
+            moveMode = false;
+            editingIndex = null;
+        }
+
+        liveRenderLog();
+        saveToLocal();
+    }
+
+    function setActiveItem(index) {
+        if (document.body.getAttribute('data-mode') !== 'edit') return;
+
+        // 正在編輯時，不要因為點擊而重繪
+        if (editingIndex !== null) return;
+
+        // 已經是同一個 active，就不要重繪
+        if (activeIndex === index) return;
+
+        activeIndex = index;
+        liveRenderLog();
+    }
+
+    function clearActiveItem() {
+        if (document.body.getAttribute('data-mode') !== 'edit') return;
+
+        // 正在編輯時，不要清掉 active
+        if (editingIndex !== null) return;
+
+        if (activeIndex === null) return;
+
+        activeIndex = null;
+        liveRenderLog();
+    }
+
+    function startMoveItem(index) {
+        if (document.body.getAttribute('data-mode') !== 'edit') return;
+        moveSourceIndex = index;
+        moveMode = true;
+        activeIndex = index;
+        liveRenderLog();
+    }
+
+    function cancelMoveMode() {
+        moveSourceIndex = null;
+        moveMode = false;
+        liveRenderLog();
+    }
+
+    function moveLogItem(targetIndex) {
+        if (moveSourceIndex === null || moveSourceIndex === undefined) return;
+        if (targetIndex === null || targetIndex === undefined) return;
+
+        const movingItem = rawLogData[moveSourceIndex];
+        if (!movingItem) return;
+
+        rawLogData.splice(moveSourceIndex, 1);
+
+        let adjustedTargetIndex = targetIndex;
+        if (moveSourceIndex < targetIndex) {
+            adjustedTargetIndex--;
+        }
+
+        rawLogData.splice(adjustedTargetIndex, 0, movingItem);
+
+        activeIndex = adjustedTargetIndex;
+        moveSourceIndex = null;
+        moveMode = false;
+
+        liveRenderLog();
+        saveToLocal();
+    }
+
+    function createInsertLine(targetIndex) {
+        const line = document.createElement('div');
+        line.className = 'insert-anchor-line';
+        line.innerHTML = `<span>插入到此處</span>`;
+
+        line.addEventListener('click', function(e) {
+            e.stopPropagation();
+            moveLogItem(targetIndex);
+        });
+
+        return line;
     }
 
     function toggleTheme() { 
@@ -522,57 +868,101 @@
 
     function makeEditable(index) {
         if (document.body.getAttribute('data-mode') !== 'edit') return;
+        if (moveMode) return;
+        if (editingIndex === index) return;
+
+        activeIndex = index;
+        editingIndex = index;
+
         const textNode = document.querySelector(`[data-index="${index}"] .text-content`);
         if (!textNode) return;
 
-        // 關鍵修正：在進入編輯前，將數據中所有的 <br> 或 <br/> 標籤強制換成 \n
-        // 這樣在 contentEditable 啟動時，瀏覽器只會看到純文字換行
-        let rawContent = rawLogData[index].html;
-        let cleanContent = rawContent.replace(/<br\s*\/?>/gi, '\n');
+        let cleanContent = rawLogData[index].html || '';
         
-        textNode.innerText = cleanContent; 
+        textNode.innerText = cleanContent;
         textNode.contentEditable = "true";
         textNode.focus();
 
+        textNode.onkeydown = function(e) {
+            if (!e.ctrlKey) return;
+
+            const key = e.key.toLowerCase();
+
+            if (key === 'b') {
+                e.preventDefault();
+                wrapSelection(textNode, '**');
+            } else if (key === 'i') {
+                e.preventDefault();
+                wrapSelection(textNode, '//');
+            }
+        };
+
         textNode.onblur = () => {
             textNode.contentEditable = "false";
-            // 儲存時，我們存下帶有 \n 的純文字
             rawLogData[index].html = textNode.innerText;
+            editingIndex = null;
             saveToLocal();
-            liveRenderLog(); // 透過渲染器重新畫出樣式，這時 parseCustomMarkdown 會把 \n 轉回顯示用的標籤
+            liveRenderLog();
         };
+    }
+
+    function wrapSelection(el, wrapper) {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+
+        const range = selection.getRangeAt(0);
+
+        // 確保選取範圍在這個編輯區內
+        if (!el.contains(range.commonAncestorContainer)) return;
+
+        const selectedText = selection.toString();
+
+        if (selectedText.length > 0) {
+            // 有選取文字 → 包起來
+            const newText = wrapper + selectedText + wrapper;
+            document.execCommand('insertText', false, newText);
+        } else {
+            // 沒選取 → 插入成對符號
+            const newText = wrapper + wrapper;
+            document.execCommand('insertText', false, newText);
+
+            // 把游標往中間移
+            moveCursorBackward(wrapper.length);
+        }
+    }
+
+    function moveCursorBackward(count) {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+
+        const range = selection.getRangeAt(0);
+        range.setStart(range.startContainer, range.startOffset - count);
+        range.collapse(true);
+
+        selection.removeAllRanges();
+        selection.addRange(range);
     }
 
     function liveRenderLog() {
         const out = document.getElementById('out-content'); out.innerHTML = '';
         const globalShowName = document.getElementById('global-show-name')?.checked;
         const currentMode = document.body.getAttribute('data-mode');
+        let lastRenderedType = null;
         
         rawLogData.forEach((item, index) => {
             const conf = channelConfigs[item.ch]; 
             if (item.ch !== '[main]' && conf && !conf.checked) return;
             
             const wrap = document.createElement('div'); 
-            wrap.className = 'log-item'; wrap.dataset.index = index;
+            wrap.className = 'log-item';
+            wrap.dataset.index = index;
 
-            if (currentMode === 'edit') {
-                wrap.draggable = true;
-                wrap.addEventListener('dragstart', handleDragStart);
-                wrap.addEventListener('dragover', handleDragOver);
-                wrap.addEventListener('dragleave', handleDragLeave);
-                wrap.addEventListener('drop', handleDrop);
-                wrap.addEventListener('dragend', handleDragEnd);
-                wrap.addEventListener('dblclick', function() {
-                    const block = this.querySelector('.block-styled');
-                    if (block) {
-                        const isSplit = block.getAttribute('data-split') === 'true';
-                        block.setAttribute('data-split', !isSplit);
-                        checkMerging();
-                        saveToLocal();
-                    }
-                });
-            } else {
-                wrap.draggable = false;
+            if (currentMode === 'edit' && index === activeIndex) {
+                wrap.classList.add('active-item');
+            }
+
+            if (currentMode === 'edit' && moveMode && index === moveSourceIndex) {
+                wrap.classList.add('move-source');
             }
 
             const displayColor = (item.name === "" || item.name === "system") ? charColorMap["KP（空白）"] : (charColorMap[item.name] || "#4a4a4a");
@@ -583,49 +973,34 @@
             const textHTML = `<div class="text-content" >${parsedContent}</div>`;
 
             let contentHTML = '';
+            let renderType = 'main';
 
           
             // 處理 [main] 頻道與結局偵測
             if (item.ch === '[main]') {
-                // 核心修正：不論是不是結局，都先強力去除原始 HTML 裡的「全形/半形」空格與換行
-                // 這樣 normal 對話就不會因為原始 Log 有空格而歪掉
-                let cleanText = item.html
-                    .replace(/&nbsp;/g, '')                     // 1. 移除 HTML 空格
-                    // 2. 移除「冒號後」的所有全形或半形空格
-                    .replace(/：[　\s]*/g, '：')                 
-                    .replace(/:[　\s]*/g, ':')                   
-                    // 3. 核心：移除「換行標籤後」的所有全形或半形空格
-                    .replace(/<br\s*\/?>[　\s]*/gi, '<br>')     
-                    // 4. 移除「整段對話」開頭的空格
-                    .replace(/^[　\s]+/g, '')                   
-                    // 5. 移除「整段對話」結尾的空格
-                    .replace(/[　\s]+$/g, '');
-                // 判定是否為結局
-                const isKPOrSystem = item.name.includes("KP") || item.name === "" || item.name === "system";
-                const hasKeyWord = /結局|ENDING|END|FIN|通關/i.test(cleanText);
-                const noMarkers = !/[「」""。]/.test(cleanText);
+                const rawMainText = item.html || '';
 
-                if (isKPOrSystem && hasKeyWord && noMarkers && cleanText !== "") {
-                    // 結局標題樣式 (使用清洗過的 cleanText)
-                    const endingHTML = `<span class="text-content">${parseCustomMarkdown(cleanText)}</span>`;
-                    contentHTML = `<div class="log-line ending-text"style="color:${displayColor}; text-align:center;font-weight:900;font-size:1.3em;margin:40px 0;padding:20px 15px;background:rgba(128,128,128,0.08);border-radius:10px;border-top:2px solid ${displayColor};border-bottom:2px solid ${displayColor};letter-spacing:3px;">${endingHTML}</div>`;
+                const isKPOrSystem = item.name.includes("KP") || item.name === "" || item.name === "system";
+                const hasKeyWord = /結局|ENDING|END|FIN|通關/i.test(rawMainText);
+                const noMarkers = !/[「」""。]/.test(rawMainText);
+
+                if (isKPOrSystem && hasKeyWord && noMarkers && rawMainText.trim() !== "") {
+                    renderType = 'ending';
+                    const endingHTML = `<span class="text-content">${parseCustomMarkdown(rawMainText)}</span>`;
+                    contentHTML = `<div class="log-line ending-text" style="color:${displayColor}; text-align:center; font-weight:900; font-size:1.3em; background:rgba(128,128,128,0.08); border-radius:10px; border-top:2px solid ${displayColor}; border-bottom:2px solid ${displayColor}; letter-spacing:3px;">${endingHTML}</div>`;
                 } else {
-                    // 普通對話：也使用清洗過的 cleanText，這樣前端才不會有空格
-                    const regularHTML = parseCustomMarkdown(cleanText);
-                    contentHTML = `<div class="log-line" style="color:${displayColor}; ${alignStyle}">
-                        ${nameLabel}
-                        <span class="text-content">${regularHTML}</span>
-                        </div>`;
+                    renderType = 'main';
+                    contentHTML = `<div class="log-line" style="${alignStyle} color:${displayColor};">${nameLabel}${textHTML}</div>`;
                 }
             }
-            
-            // 處理 [other] 頻道
             else if (item.ch === '[other]') {
+                renderType = 'other';
                 contentHTML = `<div class="other-bubble" style="background-color:${conf.bgColor}; color:${displayColor}; text-align:right;">${nameLabel}${textHTML}</div>`;
-            } 
+            }
           
             // 處理其餘區塊頻道 (如：情報、系統、自訂標籤)
             else {
+                renderType = 'block';
                 const label = (item.ch === '[info]') ? '情報' : (document.getElementById(`tag-${item.ch}`)?.value || conf.label);
 
                 // 判斷基礎顏色
@@ -641,24 +1016,65 @@
                 }
 
                 contentHTML = `
-                    <div class="block-styled" data-tag-name="${label}"
+                    <div class="block-styled" data-channel="${item.ch}" data-tag-name="${label}"
                         style="background-color:${conf.bgColor}; color:${displayColor}; border-left-color:${dynamicColor} !important;">
                         <span class="info-tag" style="color:${dynamicColor} !important;">${label}</span>
                         ${nameLabel}
-                        <span class="text-content" style="${alignStyle}">${parsedContent}</span>
+                        <div class="text-content" style="${alignStyle}">${parsedContent}</div>
                     </div>`;
             }
-            // 組合編輯與刪除按鈕
-            const editUI = currentMode === 'edit' ? 
+            const editUI = (currentMode === 'edit' && index === activeIndex) ? 
             `<div class="edit-tools">
-                <button onclick="makeEditable(${index})">✎</button>
-                <button onclick="deleteLogItem(${index})">🗑</button>
-                <button onclick="toggleCenter(${index})">≡</button>
+                <button onclick="event.stopPropagation(); deleteLogItem(${index})" title="刪除">🗑</button>
+                <button onclick="event.stopPropagation(); toggleCenter(${index})" title="置中">≡</button>
+                <button onclick="event.stopPropagation(); startMoveItem(${index})" title="移動">↕</button>
             </div>` : '';
 
+            if (renderType === 'main') {
+                wrap.classList.add('item-main');
+            } else if (renderType === 'block') {
+                wrap.classList.add('item-block');
+            } else if (renderType === 'ending') {
+                wrap.classList.add('item-ending');
+            } else if (renderType === 'other') {
+                wrap.classList.add('item-other');
+            }
+
+            if (lastRenderedType === 'main' && renderType === 'block') {
+                wrap.classList.add('after-main');
+            }
+            if (lastRenderedType === 'block' && renderType === 'main') {
+                wrap.classList.add('after-block');
+            }
+            if (lastRenderedType === 'block' && renderType === 'block') {
+                wrap.classList.add('after-block');
+            }
+            if (lastRenderedType === 'ending' && (renderType === 'main' || renderType === 'block')) {
+                wrap.classList.add('after-ending');
+            }
+
             wrap.innerHTML = editUI + contentHTML;
+
+            if (currentMode === 'edit' && moveMode) {
+                const isSamePlace = index === moveSourceIndex;
+                const isNextPlace = index === moveSourceIndex + 1;
+
+                if (!isSamePlace && !isNextPlace) {
+                    out.appendChild(createInsertLine(index));
+                }
+            }
             out.appendChild(wrap);
+            lastRenderedType = renderType;
         });
+        if (currentMode === 'edit' && moveMode) {
+            const tailIndex = rawLogData.length;
+            const isSamePlace = tailIndex === moveSourceIndex;
+            const isNextPlace = tailIndex === moveSourceIndex + 1;
+
+            if (!isSamePlace && !isNextPlace) {
+                out.appendChild(createInsertLine(tailIndex));
+            }
+        }
         checkMerging();
     }
 
@@ -689,13 +1105,13 @@
             // --- 1. 找出這一組「合併塊」的範圍 ---
             let group = [item];
             let j = i + 1;
-            const currentTag = block.getAttribute('data-tag-name');
+            const currentChannel = block.getAttribute('data-channel');
             const currentBg = block.style.backgroundColor;
 
             while (j < items.length) {
                 const nextBlock = items[j].querySelector('.block-styled');
                 if (nextBlock && 
-                    nextBlock.getAttribute('data-tag-name') === currentTag && 
+                    nextBlock.getAttribute('data-channel') === currentChannel && 
                     nextBlock.style.backgroundColor === currentBg &&
                     nextBlock.getAttribute('data-split') !== 'true') {
                     group.push(items[j]);
@@ -731,8 +1147,14 @@
             // --- 4. 統一套用顏色與合併狀態 ---
             group.forEach((member, idx) => {
                 const memberBlock = member.querySelector('.block-styled');
-                if (idx > 0) memberBlock.setAttribute('data-merged', 'true');
-                else memberBlock.removeAttribute('data-merged');
+
+                if (idx > 0) {
+                    memberBlock.setAttribute('data-merged', 'true');
+                    member.classList.add('merged-follow');
+                } else {
+                    memberBlock.removeAttribute('data-merged');
+                    member.classList.remove('merged-follow');
+                }
 
                 memberBlock.style.setProperty('border-left-color', finalColor, 'important');
                 const infoTag = memberBlock.querySelector('.info-tag');
@@ -796,7 +1218,15 @@
                         channelConfigs[ch] = { label: finalLabel, bgColor: (ch === '[info]') ? THEME_PRESETS[currentTheme].infoBg : (ch === '[other]') ? THEME_PRESETS[currentTheme].otherBg : THEME_PRESETS[currentTheme].customBg, checked: (ch !== '[other]') };
                     }
                     if (name && name !== "system" && !charColorMap[name]) charColorMap[name] = rgbToHex(p.style.color) || "#4a4a4a";
-                    rawLogData.push({ ch, name, html: spans[2].innerHTML, raw: spans[2].innerText });
+                    const rawHtml = spans[2].innerHTML || '';
+                    const normalizedText = normalizeImportedText(rawHtml);
+
+                    rawLogData.push({
+                        ch,
+                        name,
+                        html: normalizedText,
+                        raw: normalizedText
+                    });
                 }
             });
             renderConfigPanel(); saveToLocal();
@@ -865,7 +1295,55 @@
         if (source === 'picker') document.getElementById(`ct-${name}`).value = val; else if (val.startsWith('#')) document.getElementById(`cp-${name}`).value = val.substring(0,7);
         saveToLocal(); 
     }
+
+    document.getElementById('out-content').addEventListener('click', function(e) {
+        if (document.body.getAttribute('data-mode') !== 'edit') return;
+
+        const logItem = e.target.closest('.log-item');
+        if (!logItem) return;
+
+        if (e.target.closest('.edit-tools')) return;
+        if (moveMode) return;
+
+        const index = Number(logItem.dataset.index);
+        if (Number.isNaN(index)) return;
+
+        // 正在編輯同一塊，不重進
+        if (editingIndex === index) return;
+
+        // 正在編輯別塊，先讓 blur 處理
+        if (editingIndex !== null) return;
+
+        if (activeIndex !== index) {
+            activeIndex = index;
+            liveRenderLog();
+
+            requestAnimationFrame(() => {
+                makeEditable(index);
+            });
+        } else {
+            makeEditable(index);
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (document.body.getAttribute('data-mode') !== 'edit') return;
+
+        const clickedLogItem = e.target.closest('.log-item');
+        const clickedEditTool = e.target.closest('.edit-tools');
+        const clickedInsertLine = e.target.closest('.insert-anchor-line');
+
+        if (!clickedLogItem && !clickedEditTool && !clickedInsertLine) {
+            if (moveMode) {
+                cancelMoveMode();
+                return;
+            }
+
+            if (editingIndex !== null) return;
+
+            clearActiveItem();
+        }
+    });
 </script>
 </body>
 </html>
-
