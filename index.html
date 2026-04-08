@@ -90,11 +90,11 @@
             align-items: center;
             background: #fff;
             padding: 8px 15px;
-            border-radius: 20px; /* 稍微減小圓角，讓長方形感出來一點點 */
+            border-radius: 20px; 
             border: 1.2px solid var(--border-color);
             box-shadow: 0 2px 6px rgba(0,0,0,0.03);
         }
-        /* 統一設定面板標題與上方 label 的風格 */
+       
         .config-title {
             font-weight: bold;
             margin-bottom: 12px;
@@ -102,7 +102,7 @@
             font-size: 16px;
             display: block;
             padding-bottom: 5px;
-            border-bottom: 1px solid rgba(166, 124, 82, 0.2); /* 淡淡的分隔線 */
+            border-bottom: 1px solid rgba(166, 124, 82, 0.2); 
             margin-top: 30px;
         }
 
@@ -166,28 +166,6 @@
             margin-top: 28px;
         }
 
-        .split-tools {
-            position: absolute;
-            right: -18px;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 20;
-        }
-
-        .split-tools button {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: 1px solid var(--border-color);
-            background: var(--container-bg);
-            cursor: pointer;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-            padding: 0;
-        }
 
         .edit-tools{
             position: absolute;
@@ -289,7 +267,7 @@
             border-top-left-radius: 0 !important;
             border-top-right-radius: 0 !important;
             border-top: none !important;
-            padding-top: 5px !important; /* 縮短內部頂部間距 */
+            padding-top: 1.8em !important; /* 縮短內部頂部間距 */
         }
 
         /* 隱藏合併區塊內重複的標籤（例如：情報、系統） */
@@ -302,7 +280,7 @@
             border-bottom-left-radius: 0 !important;
             border-bottom-right-radius: 0 !important;
             margin-bottom: 0 !important;
-            padding-bottom: 5px !important;
+            padding-bottom: 0 !important;
         }
 
         /* 讓資訊列的間距與字級完全貼合內文 */
@@ -330,6 +308,8 @@
             font-weight: 400;
         }
 
+        
+
         .file-upload-wrapper { text-align: center; padding: 55px 30px; border: 2.5px dashed var(--border-color); border-radius: 20px; background: rgba(0,0,0,0.01); margin: 40px 0; transition: 0.3s; }
         .file-upload-wrapper label { font-size: 18px; margin-bottom: 25px; color: var(--primary-color); opacity: 0.9; }
 
@@ -341,6 +321,45 @@
         [data-mode="edit"] .text-content[contenteditable="true"] {
             cursor: text;
             user-select: text;
+        }
+
+        .merge-boundary-line {
+            position: relative;
+            height: 0;
+            padding: 10px 0;
+            margin: -4px 0;
+            user-select: none;
+            z-index: 12;
+        }
+
+        .merge-boundary-line::before {
+            content: "";
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            top: 50%;
+            border-top: 1px solid rgba(120,120,120,0.35);
+            transform: translateY(-50%);
+        }
+
+        .merge-boundary-line button {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--container-bg);
+            border: 1px solid rgba(120,120,120,0.35);
+            color: #777;
+            border-radius: 999px;
+            padding: 2px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            line-height: 1.4;
+        }
+
+        .merge-boundary-line button:hover {
+            color: #555;
+            border-color: rgba(120,120,120,0.55);
         }
 
        
@@ -515,6 +534,8 @@
                 height: 30px;
                 font-size: 13px;
             }
+
+            
         }
     </style>
 </head>
@@ -859,6 +880,22 @@
         }
 
         rawLogData.splice(adjustedTargetIndex, 0, ...movingItems);
+        const firstMovedIndex = adjustedTargetIndex;
+        const lastMovedIndex = adjustedTargetIndex + movingItems.length - 1;
+
+        // 這組搬過去後，第一塊跟上方是否要融合
+        if (firstMovedIndex > 0) {
+            rawLogData[firstMovedIndex].splitBefore =
+                !canAutoJoin(rawLogData[firstMovedIndex - 1], rawLogData[firstMovedIndex]);
+        } else {
+            rawLogData[firstMovedIndex].splitBefore = false;
+        }
+
+        // 這組搬過去後，下一塊跟這組最後一塊是否要融合
+        if (lastMovedIndex < rawLogData.length - 1) {
+            rawLogData[lastMovedIndex + 1].splitBefore =
+                !canAutoJoin(rawLogData[lastMovedIndex], rawLogData[lastMovedIndex + 1]);
+        }
 
         activeIndex = adjustedTargetIndex;
         moveSourceIndex = null;
@@ -1063,8 +1100,8 @@
                     </div>`;
             }
 
-            const showSplitLock = renderType === 'block' && isMergeCompatibleWithPrev(index);
-            const splitLocked = !!item.splitBefore;
+           
+           
             const editUI = (currentMode === 'edit' && index === activeIndex) ? 
             `<div class="edit-tools">
                 <button onclick="event.stopPropagation(); toggleCenter(${index})" title="置中">≡</button>
@@ -1096,15 +1133,9 @@
                 wrap.classList.add('after-ending');
             }
 
-            const splitUI = (currentMode === 'edit' && showSplitLock) ? `
-                <div class="split-tools">
-                    <button onclick="event.stopPropagation(); toggleSplitBefore(${index})" title="${splitLocked ? '解除相連' : '鎖定相連'}">
-                        ${splitLocked ? '🔓' : '🔒'}
-                    </button>
-                </div>
-            ` : '';
+            
 
-            wrap.innerHTML = editUI + splitUI + contentHTML;
+            wrap.innerHTML = editUI  + contentHTML;
 
             if (currentMode === 'edit' && moveMode) {
                 const isInsideMovingGroup = moveRangeStart !== null && index >= moveRangeStart && index <= moveRangeEnd;
@@ -1119,30 +1150,18 @@
         });
         if (currentMode === 'edit' && moveMode) {
             const tailIndex = rawLogData.length;
-            const isInsideMovingGroup = moveRangeStart !== null && tailIndex >= moveRangeStart && tailIndex <= moveRangeEnd;
+            const isInsideMovingGroup = moveRangeStart !== null && tailIndex >= moveRangeStart && tailIndex <= moveRangeEn
             const isRightAfterMovingGroup = moveRangeEnd !== null && tailIndex === moveRangeEnd + 1;
 
             if (!isInsideMovingGroup && !isRightAfterMovingGroup) {
                 out.appendChild(createInsertLine(tailIndex));
             }
         }
-        checkMerging();
+        checkMerging(); 
     }
 
-    function toggleSplitBefore(index) {
-        if (!rawLogData[index]) return;
-        if (index <= 0) return;
 
-        rawLogData[index].splitBefore = !rawLogData[index].splitBefore;
-
-        saveToLocal();
-        liveRenderLog();
-    }
-
-    function isMergeCompatibleWithPrev(index) {
-        if (index <= 0) return false;
-        return canMergeItems(rawLogData[index - 1], rawLogData[index]);
-    }
+   
 
     function toggleCenter(index) {
         const item = rawLogData[index];
@@ -1463,6 +1482,23 @@
         }
 
         return { start, end };
+    }
+
+    function canAutoJoin(prev, next) {
+        if (!prev || !next) return false;
+        if (prev.ch !== next.ch) return false;
+
+        const prevConf = channelConfigs[prev.ch];
+        const nextConf = channelConfigs[next.ch];
+        if (!prevConf || !nextConf) return false;
+
+        return prevConf.bgColor === nextConf.bgColor;
+    }
+    function toggleBoundarySplit(nextIndex) {
+        if (nextIndex <= 0 || !rawLogData[nextIndex]) return;
+        rawLogData[nextIndex].splitBefore = !rawLogData[nextIndex].splitBefore;
+        saveToLocal();
+        liveRenderLog();
     }
 </script>
 </body>
