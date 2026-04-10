@@ -26,31 +26,74 @@
         }
 
         @media print {
-            @page { margin: 1.2cm; }
-            body { 
-                background: white !important; 
-                color: black !important; 
-                padding: 0 !important; 
+            @page {
+                margin: 1.2cm;
             }
-            .container { 
-                box-shadow: none !important; 
-                max-width: 100% !important; 
-                padding: 0 !important; 
-                border: none !important; 
+
+            html, body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
-            .no-print, 
-            .mode-switcher, 
-            .edit-btn, 
-            .add-ho-btn { 
-                display: none !important; 
+
+            body {
+                background: white !important;
+                color: black !important;
+                padding: 0 !important;
             }
-            #output { 
-                display: block !important; 
-                border: none !important; 
-                padding: 0 !important; 
+
+            .container {
+                box-shadow: none !important;
+                max-width: 100% !important;
+                padding: 0 8px !important;
+                border: none !important;
+                background: white !important;
             }
-            .block-styled, 
-            .ending-text, .info-bar { break-inside: avoid; }
+
+            .no-print,
+            .mode-switcher,
+            .edit-btn,
+            .add-ho-btn,
+            .floating-insert-line,
+            .floating-boundary-hint,
+            .edit-tools {
+                display: none !important;
+            }
+
+            #output {
+                display: block !important;
+                border: none !important;
+                padding: 0 !important;
+            }
+
+            .block-styled {
+                break-inside: auto !important;
+                page-break-inside: auto !important;
+                border-radius: 12px !important;
+                padding: 14px 16px !important;
+                margin: 6px 0 !important;
+            }
+
+            .ending-text,
+            .info-bar {
+                background: transparent !important;
+                border: none !important;
+                border-bottom: 1px solid rgba(120, 120, 120, 0.18) !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                padding: 0 0 10px 0 !important;
+                margin: 10px 0 18px 0 !important;
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            .md-quote {
+                border-left: 3px solid #b8b8b8 !important;
+                color: #666 !important;
+                font-size: 0.95em !important;
+            }
+
+            .main-text {
+                line-height: 1.9 !important;
+            }
         }
 
        body {
@@ -133,7 +176,7 @@
         /* main 文字段落 */
         .log-item.item-main .log-line {
             margin-top: 0;
-            margin-bottom: 1.2em;
+            margin-bottom: 1.8em;
         }
 
        /* 一般 block 和 block 之間，保留清楚間距 */
@@ -213,10 +256,32 @@
             background: rgba(166, 124, 82, 0.04);
         }
 
+        .log-item.move-group {
+            outline: 1px solid rgba(217, 119, 6, 0.22);
+            outline-offset: 2px;
+            background: rgba(217, 119, 6, 0.03);
+        }
+
         .log-item.move-source {
-            outline: 2px dashed #d97706;
-            outline-offset: 6px;
-            background: rgba(217, 119, 6, 0.06);
+            outline: 2px solid rgba(217, 119, 6, 0.45);
+            outline-offset: 4px;
+            background: rgba(217, 119, 6, 0.05);
+        }
+
+        .log-item.move-source::before {
+            content: "移動中";
+            position: absolute;
+            top: -12px;
+            left: 12px;
+            background: #fff7ed;
+            color: #d97706;
+            border: 1px solid rgba(217,119,6,0.35);
+            border-radius: 999px;
+            padding: 2px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.4;
+            z-index: 40;
         }
 
         .text-content { 
@@ -314,80 +379,71 @@
         .file-upload-wrapper label { font-size: 18px; margin-bottom: 25px; color: var(--primary-color); opacity: 0.9; }
 
         .generate-btn { background-color: var(--primary-color); color: white; border: none; padding: 18px; border-radius: 15px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; margin-top: 10px; transition: 0.3s; box-shadow: 0 6px 15px rgba(166, 124, 82, 0.2); }
-        .action-btn { background: #8fa4b3; color: white; padding: 15px 30px; border: none; border-radius: 15px; cursor: pointer; font-weight: bold; font-size: 16px; height: 60px; transition: 0.3s; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; }
+        .action-btn { background: #8fa4b3; color: white; padding: 15px 30px; border: none; border-radius: 15px; cursor: pointer; font-weight: bold; font-size: 16px; height: 60px; transition: 0.3s; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.8; }
         
-    
-        /* 編輯文字時改為 I 字形游標 */
-        [data-mode="edit"] .text-content[contenteditable="true"] {
-            cursor: text;
-            user-select: text;
-        }
-
-        .merge-boundary-line {
-            position: relative;
+        .floating-boundary-hint {
+            position: absolute;
+            left: 0;
+            right: 0;
             height: 0;
-            padding: 10px 0;
-            margin: -4px 0;
-            user-select: none;
-            z-index: 12;
+            z-index: 36;
+            pointer-events: none;
         }
 
-        .merge-boundary-line::before {
+        .floating-boundary-hint::before {
             content: "";
             position: absolute;
             left: 18px;
             right: 18px;
-            top: 50%;
-            border-top: 1px solid rgba(120,120,120,0.35);
-            transform: translateY(-50%);
+            top: 0;
+            border-top: 1px dashed #d97706;
+            opacity: 0.55;
         }
 
-        .merge-boundary-line button {
+        .floating-boundary-hint button {
             position: absolute;
             left: 50%;
-            top: 50%;
+            top: 0;
             transform: translate(-50%, -50%);
-            background: var(--container-bg);
-            border: 1px solid rgba(120,120,120,0.35);
-            color: #777;
+            background: #fff7ed;
+            color: #d97706;
+            border: 1px solid rgba(217,119,6,0.35);
             border-radius: 999px;
-            padding: 2px 10px;
+            padding: 1px 10px;
             font-size: 11px;
+            line-height: 1.5;
             cursor: pointer;
-            line-height: 1.4;
+            pointer-events: auto;
         }
-
-        .merge-boundary-line button:hover {
-            color: #555;
-            border-color: rgba(120,120,120,0.55);
-        }
-
-       
-        .insert-anchor-line{
+        
+        #out-content {
             position: relative;
-            height: 0;
-            padding: 12px 0;
-            margin: -12px 0;
-            cursor: pointer;
-            user-select: none;
-            z-index: 15;
         }
 
-        .insert-anchor-line::before{
+
+        .floating-insert-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 0;
+            z-index: 35;
+            pointer-events: none;
+        }
+
+        .floating-insert-line::before {
             content: "";
             position: absolute;
             left: 0;
             right: 0;
-            top: 50%;
-            border-top: 1.5px dashed var(--primary-color);
-            transform: translateY(-50%);
-            opacity: 0.9;
+            top: 0;
+            border-top: 2px dashed var(--primary-color);
+            opacity: 0.95;
         }
 
-        .insert-anchor-line span{
+        .floating-insert-line span {
             position: absolute;
             left: 50%;
-            top: 50%;
+            top: 0;
             transform: translate(-50%, -50%);
             background: var(--container-bg);
             padding: 0 10px;
@@ -396,16 +452,58 @@
             border-radius: 999px;
             border: 1px solid var(--border-color);
             white-space: nowrap;
+            line-height: 1.6;
+        }
+        .md-quote {
+            display: block;
+            margin: 8px 0;
+            padding-left: 12px;
+            border-left: 3px solid #b8b8b8;
+            color: #7a7a7a;
+            font-size: 0.95em;
+            line-height: 1.8;
         }
 
-        .insert-anchor-line:hover::before{
-            border-top-width: 2px;
+        [data-theme="dark"] .md-quote {
+            border-left-color: #666;
+            color: #a0a0a0;
         }
 
-        .insert-anchor-line:hover span{
-            background: #fffaf3;
+        .inline-setting-row {
+            margin-top: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
         }
 
+        .inline-checkbox {
+            margin-bottom: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mini-action-btn {
+            background: var(--container-bg);
+            color: var(--primary-color);
+            border: 1.5px solid var(--primary-color);
+            padding: 7px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .mini-action-btn:hover {
+            filter: brightness(0.95);
+        }
+        [data-theme="dark"] .mini-action-btn {
+            background: #6e7a68;
+        }
         @media (max-width: 1200px) {
             body {
                 padding: 32px 60px;
@@ -581,11 +679,15 @@
             <input type="file" id="html-file" accept=".html">
         </div>
         
-        <div style="margin-top: 25px; display: flex; align-items: center; justify-content: center; gap: 15px;" class="no-print">
-            <label style="margin-bottom: 0; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                <input type="checkbox" id="global-show-name" checked onchange="liveRenderLog(); saveToLocal();"> 
-                <span>顯示對話名字</span>
+        <div class="inline-setting-row">
+            <label class="inline-checkbox">
+                <input type="checkbox" id="global-show-name" checked>
+                顯示對話名字
             </label>
+
+            <button type="button" class="mini-action-btn" onclick="applyMonochromeTextColors()">
+                文字顏色統一
+            </button>
         </div>
 
         <details class="config-panel no-print" id="config-panel" style="margin-top: 20px; cursor: pointer;">
@@ -672,7 +774,7 @@
             moveSourceIndex--;
         }
 
-        liveRenderLog();
+        rerenderKeepViewport();
         saveToLocal();
     }
 }
@@ -687,6 +789,14 @@
     let moveRangeEnd = null;
     let moveMode = false;
     let editingIndex = null;
+
+    let hoverInsertIndex = null;
+    let hoverInsertTop = null;
+    let hoverBoundaryIndex = null;
+    let hoverBoundaryTop = null;
+
+    let pendingPointerEvent = null;
+    let pointerRenderQueued = false;
 
 
     const THEME_PRESETS = {
@@ -715,15 +825,50 @@
 
     function parseCustomMarkdown(text) {
         if (!text) return "";
-        // 先處理換行，再處理 Markdown 符號
-        let html = text.replace(/\n/g, '<br>');
+
+        let html = text;
+
+        // 先處理引用
+        html = html.replace(
+            /(?:^|\n)((?:>\s?.*(?:\n|$))+)/g,
+            function(match, quoteBlock) {
+                const content = quoteBlock
+                    .split('\n')
+                    .filter(line => line.trim() !== '')
+                    .map(line => line.replace(/^>\s?/, ''))
+                    .join('<br>');
+
+                return `<div class="md-quote">${content}</div>`;
+            }
+        );
         
-        return html
+        html = html
             .replace(/-#([\s\S]*?)#-/g, '<span style="font-size: 0.85em; opacity: 0.6;">$1</span>')
             .replace(/##([\s\S]*?)##/g, '<h2 style="margin: 5px 0; font-size: 1.2em;">$1</h2>')
             .replace(/#([\s\S]*?)#/g, '<h1 style="margin: 10px 0; font-size: 1.4em;">$1</h1>')
+
+            // 先處理刪除線，避免和下標衝突
+            .replace(/~~([\s\S]*?)~~/g, '<del>$1</del>')
+
+            // 粗體
             .replace(/\*\*([\s\S]*?)\*\*/g, '<b>$1</b>')
-            .replace(/\/\/([\s\S]*?)\/\//g, '<i>$1</i>');
+
+            // 斜體
+            .replace(/\/\/([\s\S]*?)\/\//g, '<i>$1</i>')
+
+            // 底線
+            .replace(/__([\s\S]*?)__/g, '<u>$1</u>')
+
+            // 上標
+            .replace(/\^([^^\n]+?)\^/g, '<sup>$1</sup>')
+
+            // 下標（單個 ~，避免吃到 ~~）
+            .replace(/~([^~\n]+?)~/g, '<sub>$1</sub>');
+
+        // 最後才換行
+        html = html.replace(/\n/g, '<br>');
+
+        return html;
     }
 
     function saveToLocal() {
@@ -818,31 +963,6 @@
         saveToLocal();
     }
 
-    function setActiveItem(index) {
-        if (document.body.getAttribute('data-mode') !== 'edit') return;
-
-        // 正在編輯時，不要因為點擊而重繪
-        if (editingIndex !== null) return;
-
-        // 已經是同一個 active，就不要重繪
-        if (activeIndex === index) return;
-
-        activeIndex = index;
-        liveRenderLog();
-    }
-
-    function clearActiveItem() {
-        if (document.body.getAttribute('data-mode') !== 'edit') return;
-
-        // 正在編輯時，不要清掉 active
-        if (editingIndex !== null) return;
-
-        if (activeIndex === null) return;
-
-        activeIndex = null;
-        liveRenderLog();
-    }
-
     function startMoveItem(index) {
         if (document.body.getAttribute('data-mode') !== 'edit') return;
 
@@ -862,7 +982,9 @@
         moveRangeStart = null;
         moveRangeEnd = null;
         moveMode = false;
-        liveRenderLog();
+        clearFloatingInsertLine();
+        clearFloatingBoundaryHint();
+        rerenderKeepViewport();
     }
 
     function moveLogItem(targetIndex) {
@@ -902,22 +1024,83 @@
         moveRangeStart = null;
         moveRangeEnd = null;
         moveMode = false;
+        clearFloatingInsertLine();
+        clearFloatingBoundaryHint();
 
-        liveRenderLog();
+        rerenderKeepViewport();
         saveToLocal();
     }
+    function clearFloatingInsertLine() {
+        hoverInsertIndex = null;
+        hoverInsertTop = null;
 
-    function createInsertLine(targetIndex) {
+        const oldLine = document.querySelector('.floating-insert-line');
+        if (oldLine) oldLine.remove();
+    }
+
+    function renderFloatingInsertLine() {
+        const out = document.getElementById('out-content');
+        const oldLine = out.querySelector('.floating-insert-line');
+        if (oldLine) oldLine.remove();
+
+        if (!moveMode || hoverInsertIndex === null || hoverInsertTop === null) return;
+
         const line = document.createElement('div');
-        line.className = 'insert-anchor-line';
+        line.className = 'floating-insert-line';
+        line.style.top = `${hoverInsertTop}px`;
         line.innerHTML = `<span>插入到此處</span>`;
+        out.appendChild(line);
+    }
 
-        line.addEventListener('click', function(e) {
-            e.stopPropagation();
-            moveLogItem(targetIndex);
-        });
+    function updateFloatingInsertFromPointer(e) {
+        if (!moveMode) return;
 
-        return line;
+        const out = document.getElementById('out-content');
+        const logItem = e.target.closest('.log-item');
+
+        if (!logItem || !out.contains(logItem)) {
+            clearFloatingInsertLine();
+            return;
+        }
+
+        const index = Number(logItem.dataset.index);
+        if (Number.isNaN(index)) {
+            clearFloatingInsertLine();
+            return;
+        }
+
+        const rect = logItem.getBoundingClientRect();
+        const outRect = out.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+
+        let targetIndex;
+        let top;
+
+        if (e.clientY < midY) {
+            targetIndex = index;
+            top = rect.top - outRect.top;
+        } else {
+            targetIndex = index + 1;
+            top = rect.bottom - outRect.top;
+        }
+
+        const isInsideMovingGroup =
+            moveRangeStart !== null &&
+            targetIndex >= moveRangeStart &&
+            targetIndex <= moveRangeEnd;
+
+        const isRightAfterMovingGroup =
+            moveRangeEnd !== null &&
+            targetIndex === moveRangeEnd + 1;
+
+        if (isInsideMovingGroup || isRightAfterMovingGroup) {
+            clearFloatingInsertLine();
+            return;
+        }
+
+        hoverInsertIndex = targetIndex;
+        hoverInsertTop = top;
+        renderFloatingInsertLine();
     }
 
     function toggleTheme() { 
@@ -949,32 +1132,40 @@
         const textNode = document.querySelector(`[data-index="${index}"] .text-content`);
         if (!textNode) return;
 
-        let cleanContent = rawLogData[index].html || '';
-        
+        const cleanContent = rawLogData[index].html || '';
+
         textNode.innerText = cleanContent;
         textNode.contentEditable = "true";
         textNode.focus();
 
         textNode.onkeydown = function(e) {
-            if (!e.ctrlKey) return;
-
             const key = e.key.toLowerCase();
 
-            if (key === 'b') {
-                e.preventDefault();
-                wrapSelection(textNode, '**');
-            } else if (key === 'i') {
-                e.preventDefault();
-                wrapSelection(textNode, '//');
+            if (e.ctrlKey) {
+                if (key === 'b') {
+                    e.preventDefault();
+                    wrapSelection(textNode, '**');
+                    return;
+                } else if (key === 'i') {
+                    e.preventDefault();
+                    wrapSelection(textNode, '//');
+                    return;
+                } else if (key === 'u') {
+                    e.preventDefault();
+                    wrapSelection(textNode, '__');
+                    return;
+                } else if (e.shiftKey && key === 'x') {
+                    e.preventDefault();
+                    wrapSelection(textNode, '~~');
+                    return;
+                }
             }
-        };
 
-        textNode.onblur = () => {
-            textNode.contentEditable = "false";
-            rawLogData[index].html = textNode.innerText;
-            editingIndex = null;
-            saveToLocal();
-            liveRenderLog();
+            // 可選：Ctrl+Enter 提交
+            if (e.ctrlKey && key === 'enter') {
+                e.preventDefault();
+                commitEditing({ rerender: true, keepViewport: true });
+            }
         };
     }
 
@@ -1016,7 +1207,8 @@
     }
 
     function liveRenderLog() {
-        const out = document.getElementById('out-content'); out.innerHTML = '';
+        const out = document.getElementById('out-content'); 
+        out.innerHTML = '';
         const globalShowName = document.getElementById('global-show-name')?.checked;
         const currentMode = document.body.getAttribute('data-mode');
         let lastRenderedType = null;
@@ -1032,6 +1224,17 @@
 
             if (currentMode === 'edit' && index === activeIndex) {
                 wrap.classList.add('active-item');
+            }
+
+            if (
+                currentMode === 'edit' &&
+                moveMode &&
+                moveRangeStart !== null &&
+                moveRangeEnd !== null &&
+                index >= moveRangeStart &&
+                index <= moveRangeEnd
+            ) {
+                wrap.classList.add('move-group');
             }
 
             if (currentMode === 'edit' && moveMode && index === moveSourceIndex) {
@@ -1105,7 +1308,7 @@
             const editUI = (currentMode === 'edit' && index === activeIndex) ? 
             `<div class="edit-tools">
                 <button onclick="event.stopPropagation(); toggleCenter(${index})" title="置中">≡</button>
-                <button onclick="event.stopPropagation(); startMoveItem(${index})" title="移動">↕</button>
+                <button onpointerdown="startMoveItemDirect(event, ${index})" title="移動">↕</button>
                 <button onclick="event.stopPropagation(); deleteLogItem(${index})" title="刪除">🗑</button>
                 <button onclick="event.stopPropagation(); addLogItemBelow(${index})" title="新增">＋</button>
             </div>` : '';
@@ -1137,27 +1340,15 @@
 
             wrap.innerHTML = editUI  + contentHTML;
 
-            if (currentMode === 'edit' && moveMode) {
-                const isInsideMovingGroup = moveRangeStart !== null && index >= moveRangeStart && index <= moveRangeEnd;
-                const isRightAfterMovingGroup = moveRangeEnd !== null && index === moveRangeEnd + 1;
-
-                if (!isInsideMovingGroup && !isRightAfterMovingGroup) {
-                    out.appendChild(createInsertLine(index));
-                }
-            }
             out.appendChild(wrap);
             lastRenderedType = renderType;
         });
-        if (currentMode === 'edit' && moveMode) {
-            const tailIndex = rawLogData.length;
-            const isInsideMovingGroup = moveRangeStart !== null && tailIndex >= moveRangeStart && tailIndex <= moveRangeEn
-            const isRightAfterMovingGroup = moveRangeEnd !== null && tailIndex === moveRangeEnd + 1;
+        const overlay = document.createElement('div');
+        overlay.className = 'overlay-layer';
+        out.appendChild(overlay);
 
-            if (!isInsideMovingGroup && !isRightAfterMovingGroup) {
-                out.appendChild(createInsertLine(tailIndex));
-            }
-        }
-        checkMerging(); 
+        checkMerging();
+        renderFloatingBoundaryHint();
     }
 
 
@@ -1171,7 +1362,7 @@
         item.align = (item.align === "center") ? "left" : "center";
         
         saveToLocal();
-        liveRenderLog();
+        rerenderKeepViewport();
     }
 
     function checkMerging() {
@@ -1192,6 +1383,11 @@
             let j = i + 1;
             const currentChannel = block.getAttribute('data-channel');
             const currentBg = block.style.backgroundColor;
+            if (currentChannel === '[main]' || currentChannel === '[other]') {
+                i++;
+                continue;
+            }
+            
 
             while (j < items.length) {
                 const nextBlock = items[j].querySelector('.block-styled');
@@ -1384,20 +1580,28 @@
     document.getElementById('out-content').addEventListener('click', function(e) {
         if (document.body.getAttribute('data-mode') !== 'edit') return;
 
+        if (e.target.closest('.edit-tools')) return;
+
+        if (moveMode) {
+            if (hoverInsertIndex !== null) {
+                moveLogItem(hoverInsertIndex);
+            }
+            return;
+        }
+
         const logItem = e.target.closest('.log-item');
         if (!logItem) return;
-
-        if (e.target.closest('.edit-tools')) return;
-        if (moveMode) return;
 
         const index = Number(logItem.dataset.index);
         if (Number.isNaN(index)) return;
 
-        // 正在編輯同一塊，不重進
+        // 已經在編輯同一塊，就不要重進
         if (editingIndex === index) return;
 
-        // 正在編輯別塊，先讓 blur 處理
-        if (editingIndex !== null) return;
+        // 如果正在編輯別塊，先提交，再切換
+        if (editingIndex !== null) {
+            commitEditing({ rerender: false });
+        }
 
         if (activeIndex !== index) {
             activeIndex = index;
@@ -1411,24 +1615,63 @@
         }
     });
 
-    document.addEventListener('click', function(e) {
+    function applyMonochromeTextColors() {
+        const monoColor = charColorMap["KP（空白）"] || (
+            document.body.getAttribute('data-theme') === 'dark'
+                ? '#d1d1d1'
+                : '#4a4a4a'
+        );
+
+        Object.keys(charColorMap).forEach(name => {
+            charColorMap[name] = monoColor;
+        });
+
+        renderConfigPanel();
+        liveRenderLog();
+        saveToLocal();
+    }
+
+    document.getElementById('out-content').addEventListener('mousemove', function(e) {
         if (document.body.getAttribute('data-mode') !== 'edit') return;
+        if (!moveMode) return;
 
-        const clickedLogItem = e.target.closest('.log-item');
-        const clickedEditTool = e.target.closest('.edit-tools');
-        const clickedInsertLine = e.target.closest('.insert-anchor-line');
+        pendingPointerEvent = e;
 
-        if (!clickedLogItem && !clickedEditTool && !clickedInsertLine) {
-            if (moveMode) {
-                cancelMoveMode();
-                return;
+        if (pointerRenderQueued) return;
+        pointerRenderQueued = true;
+
+        requestAnimationFrame(() => {
+            pointerRenderQueued = false;
+            if (pendingPointerEvent) {
+                updateFloatingInsertFromPointer(pendingPointerEvent);
+                updateFloatingBoundaryFromPointer(pendingPointerEvent);
             }
-
-            if (editingIndex !== null) return;
-
-            clearActiveItem();
-        }
+        });
     });
+
+    document.getElementById('out-content').addEventListener('mouseleave', function() {
+        if (!moveMode) return;
+        clearFloatingInsertLine();
+        clearFloatingBoundaryHint();
+    });
+
+    // document.addEventListener('click', function(e) {
+    //     if (document.body.getAttribute('data-mode') !== 'edit') return;
+
+    //     const clickedLogItem = e.target.closest('.log-item');
+    //     const clickedEditTool = e.target.closest('.edit-tools');
+
+    //     if (!clickedLogItem && !clickedEditTool) {
+    //         if (moveMode) {
+    //             cancelMoveMode();
+    //             return;
+    //         }
+
+    //         if (editingIndex !== null) return;
+
+    //         clearActiveItem();
+    //     }
+    // });
     function addLogItemBelow(index) {
         const source = rawLogData[index];
         if (!source) return;
@@ -1449,7 +1692,7 @@
         moveMode = false;
         moveSourceIndex = null;
 
-        liveRenderLog();
+        rerenderKeepViewport();
         saveToLocal();
 
         requestAnimationFrame(() => {
@@ -1460,6 +1703,10 @@
     function canMergeItems(prev, next) {
         if (!prev || !next) return false;
         if (prev.ch !== next.ch) return false;
+
+        // main / other 不參與融合
+        if (prev.ch === '[main]' || prev.ch === '[other]') return false;
+
         if (next.splitBefore) return false;
 
         const prevConf = channelConfigs[prev.ch];
@@ -1488,17 +1735,291 @@
         if (!prev || !next) return false;
         if (prev.ch !== next.ch) return false;
 
+        // main / other 不自動融合
+        if (prev.ch === '[main]' || prev.ch === '[other]') return false;
+
         const prevConf = channelConfigs[prev.ch];
         const nextConf = channelConfigs[next.ch];
         if (!prevConf || !nextConf) return false;
 
         return prevConf.bgColor === nextConf.bgColor;
     }
-    function toggleBoundarySplit(nextIndex) {
+
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && moveMode) {
+            cancelMoveMode();
+        }
+    });
+
+    function toggleGroupBoundary(nextIndex) {
         if (nextIndex <= 0 || !rawLogData[nextIndex]) return;
+
         rawLogData[nextIndex].splitBefore = !rawLogData[nextIndex].splitBefore;
+
+        if (moveMode && moveSourceIndex !== null) {
+            const range = getMergedRange(moveSourceIndex);
+            moveRangeStart = range.start;
+            moveRangeEnd = range.end;
+        }
+
         saveToLocal();
+        rerenderKeepViewport();
+    }
+
+    function startMoveItemDirect(e, index) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        if (document.body.getAttribute('data-mode') !== 'edit') return;
+
+        if (editingIndex !== null) {
+            commitEditing({ rerender: false });
+        }
+
+        activeIndex = index;
+        startMoveItem(index);
+    }
+
+    // function renderFloatingSplitLines(overlay) {
+    //     if (!overlay) return;
+    //     if (document.body.getAttribute('data-mode') !== 'edit') return;
+    //     if (!moveMode) return;
+
+    //     const out = document.getElementById('out-content');
+    //     const outRect = out.getBoundingClientRect();
+
+    //     for (let index = 0; index < rawLogData.length - 1; index++) {
+    //         const item = rawLogData[index];
+    //         const nextItem = rawLogData[index + 1];
+
+    //         const canToggleThisBoundary =
+    //             nextItem &&
+    //             item.ch !== '[main]' &&
+    //             item.ch !== '[other]' &&
+    //             nextItem.ch !== '[main]' &&
+    //             nextItem.ch !== '[other]' &&
+    //             canAutoJoin(item, nextItem);
+
+    //         if (!canToggleThisBoundary) continue;
+
+    //         const currentEl = out.querySelector(`.log-item[data-index="${index}"]`);
+    //         if (!currentEl) continue;
+
+    //         const rect = currentEl.getBoundingClientRect();
+    //         const top = rect.bottom - outRect.top;
+
+    //         const line = document.createElement('div');
+    //         line.className = 'overlay-split-line';
+    //         line.style.top = `${top}px`;
+
+    //         const isSplit = !!rawLogData[index + 1]?.splitBefore;
+    //         line.innerHTML = `
+    //             <button type="button">
+    //                 ${isSplit ? '點此處融合' : '點此處拆開'}
+    //             </button>
+    //         `;
+
+    //         line.querySelector('button').addEventListener('click', function(e) {
+    //             e.stopPropagation();
+    //             toggleGroupBoundary(index + 1);
+    //         });
+
+    //         overlay.appendChild(line);
+    //     }
+    // }
+    function captureViewportAnchor() {
+        const items = [...document.querySelectorAll('#out-content .log-item')];
+        if (!items.length) return null;
+
+        let best = null;
+        let minDist = Infinity;
+
+        items.forEach(el => {
+            const rect = el.getBoundingClientRect();
+            const dist = Math.abs(rect.top);
+
+            if (dist < minDist) {
+                minDist = dist;
+                best = {
+                    index: Number(el.dataset.index),
+                    topOffset: rect.top
+                };
+            }
+        });
+
+        return best;
+    }
+
+    function restoreViewportAnchor(anchor) {
+        if (!anchor) return;
+
+        const el = document.querySelector(`#out-content .log-item[data-index="${anchor.index}"]`);
+        if (!el) return;
+
+        const rect = el.getBoundingClientRect();
+        const diff = rect.top - anchor.topOffset;
+
+        window.scrollBy(0, diff);
+    }
+    function rerenderKeepViewport() {
+        const anchor = captureViewportAnchor();
         liveRenderLog();
+        requestAnimationFrame(() => {
+            restoreViewportAnchor(anchor);
+        });
+    }
+
+    function clearFloatingBoundaryHint() {
+        hoverBoundaryIndex = null;
+        hoverBoundaryTop = null;
+
+        const oldHint = document.querySelector('.floating-boundary-hint');
+        if (oldHint) oldHint.remove();
+    }
+
+    function renderFloatingBoundaryHint() {
+        const out = document.getElementById('out-content');
+        const oldHint = out.querySelector('.floating-boundary-hint');
+        if (oldHint) oldHint.remove();
+
+        if (!moveMode) return;
+        if (hoverBoundaryIndex === null || hoverBoundaryTop === null) return;
+
+        const nextIndex = hoverBoundaryIndex;
+        const isSplit = !!rawLogData[nextIndex]?.splitBefore;
+
+        const line = document.createElement('div');
+        line.className = 'floating-boundary-hint';
+        line.style.top = `${hoverBoundaryTop}px`;
+        line.innerHTML = `
+            <button type="button">
+                ${isSplit ? '點此處融合' : '點此處拆開'}
+            </button>
+        `;
+
+        line.querySelector('button').addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleGroupBoundary(nextIndex);
+        });
+
+        out.appendChild(line);
+    }
+
+    function updateFloatingBoundaryFromPointer(e) {
+        if (!moveMode) return;
+
+        const out = document.getElementById('out-content');
+        const logItem = e.target.closest('.log-item');
+
+        if (!logItem || !out.contains(logItem)) {
+            clearFloatingBoundaryHint();
+            return;
+        }
+
+        const index = Number(logItem.dataset.index);
+        if (Number.isNaN(index)) {
+            clearFloatingBoundaryHint();
+            return;
+        }
+
+        const nextItem = rawLogData[index + 1];
+        if (!nextItem) {
+            clearFloatingBoundaryHint();
+            return;
+        }
+
+        const item = rawLogData[index];
+        const canToggleThisBoundary =
+            item &&
+            nextItem &&
+            item.ch !== '[main]' &&
+            item.ch !== '[other]' &&
+            nextItem.ch !== '[main]' &&
+            nextItem.ch !== '[other]' &&
+            canAutoJoin(item, nextItem);
+
+        if (!canToggleThisBoundary) {
+            clearFloatingBoundaryHint();
+            return;
+        }
+
+        const rect = logItem.getBoundingClientRect();
+        const outRect = out.getBoundingClientRect();
+
+        const boundaryY = rect.bottom;
+        const threshold = 18; // 可自己調整，越大越容易觸發
+        const isNearBoundary = Math.abs(e.clientY - boundaryY) <= threshold;
+
+        if (!isNearBoundary) {
+            clearFloatingBoundaryHint();
+            return;
+        }
+
+        const top = rect.bottom - outRect.top;
+        const nextIndex = index + 1;
+
+        if (hoverBoundaryIndex === nextIndex && hoverBoundaryTop === top) {
+            return;
+        }
+
+        hoverBoundaryIndex = nextIndex;
+        hoverBoundaryTop = top;
+        renderFloatingBoundaryHint();
+    }
+
+
+    function commitEditing(options = {}) {
+        const { rerender = true, keepViewport = false } = options;
+
+        if (editingIndex === null) return true;
+
+        const idx = editingIndex;
+        const editingNode = document.querySelector(`[data-index="${idx}"] .text-content`);
+        if (!editingNode) {
+            editingIndex = null;
+            return true;
+        }
+
+        rawLogData[idx].html = normalizeEditorText(editingNode);
+        editingNode.contentEditable = "false";
+        editingNode.onblur = null;
+        editingIndex = null;
+
+        saveToLocal();
+
+        if (rerender) {
+            if (keepViewport) {
+                rerenderKeepViewport();
+            } else {
+                liveRenderLog();
+            }
+        }
+
+        return true;
+    }
+
+    function normalizeEditorText(el) {
+        if (!el) return '';
+
+        let text = el.innerText || '';
+
+        // 統一換行格式
+        text = text.replace(/\r\n/g, '\n');
+
+        // 移除每行尾巴多餘空白
+        text = text.replace(/[ \t]+\n/g, '\n');
+
+        // 避免 contenteditable 自動補太多空行：
+        // 三行以上空白壓成兩行
+        text = text.replace(/\n{3,}/g, '\n\n');
+
+        // 去掉頭尾多餘換行
+        text = text.replace(/^\n+|\n+$/g, '');
+
+        return text;
     }
 </script>
 </body>
