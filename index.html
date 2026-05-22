@@ -103,6 +103,7 @@
             padding: 40px 130px;
             margin: 0;
             line-height: 1.8;
+            font-size: 15px;
             transition: all 0.3s ease;
         }
 
@@ -289,6 +290,7 @@
             outline: none;
             display: block;
             width: 100%;
+            font-size: 15px;
         }
             [data-mode="edit"] .text-content:focus { background: rgba(230, 126, 34, 0.05); border-radius: 8px; }
 
@@ -324,7 +326,13 @@
             border-left: 10px solid ; 
             transition: none; 
         }
-        .info-tag { font-weight: 700; color: var(--primary-color); font-size: 13px; display: block; margin-bottom: 12px; letter-spacing: 1px; }
+        .info-tag { 
+            font-weight: 700; 
+            color: var(--primary-color); 
+            font-size: 13px; 
+            display: block; 
+            margin-bottom: 12px; 
+            letter-spacing: 1px; }
 
         /* 當區塊被標記為合併時：去掉上方圓角、去掉上方邊框、去掉上方間距 */
         .block-styled[data-merged="true"] {
@@ -359,10 +367,10 @@
 
         .info-line {
             display: flex;
-            align-items: baseline; /* 讓文字對齊基準線 */
-            margin-bottom: 4px !important; /* 強制縮小每一行的下間距 */
+            align-items: baseline; 
+            margin-bottom: 4px !important; 
             font-size: 15px !important; /* 調整成跟內文一樣大 */
-            line-height: 1.6 !important; /* 緊湊的行高 */
+            line-height: 1.6 !important;
             font-weight: normal;
         }
 
@@ -504,6 +512,80 @@
         [data-theme="dark"] .mini-action-btn {
             background: #6e7a68;
         }
+
+
+        .toc-panel {
+            position: fixed;
+            left: 0;
+            top: 140px;
+            width: 250px;
+            max-height: calc(100vh - 180px);
+            background: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-left: none;
+            border-radius: 0 16px 16px 0;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.10);
+            z-index: 119;
+            overflow: hidden;
+            transform: translateX(calc(-100% + 42px));
+            transition: transform 0.25s ease;
+        }
+
+        .toc-panel:hover {
+            transform: translateX(0);
+        }  
+
+        .toc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+
+        .toc-list {
+            overflow-y: auto;
+            max-height: calc(100vh - 235px);
+            padding: 10px;
+        }
+
+        .toc-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            border: none;
+            background: transparent;
+            color: var(--text-color);
+            padding: 8px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 4px;
+        }
+
+        .toc-item:hover {
+            background: rgba(166, 124, 82, 0.08);
+        }
+
+        .toc-item.active {
+            background: rgba(166, 124, 82, 0.12);
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .toc-inline-editor {
+            margin-top: 10px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: rgba(166, 124, 82, 0.04);
+        }
+
+
         @media (max-width: 1200px) {
             body {
                 padding: 32px 60px;
@@ -641,6 +723,17 @@
 
 <button class="theme-switch no-print" id="theme-btn" onclick="toggleTheme()">切換暗色模式</button>
 
+
+<aside class="toc-panel no-print" id="toc-panel">
+    <div class="toc-tab">目錄</div>
+
+    <div class="toc-header">
+        <span>目錄</span>
+    </div>
+
+    <div class="toc-list" id="toc-list"></div>
+</aside>
+
 <div class="container">
     <h1 class="tool-title no-print">CoC TRPG 團錄整理工具</h1>
     
@@ -681,7 +774,7 @@
         
         <div class="inline-setting-row">
             <label class="inline-checkbox">
-                <input type="checkbox" id="global-show-name" checked>
+                <input type="checkbox" id="global-show-name" checked onchange="liveRenderLog(); saveToLocal();">
                 顯示對話名字
             </label>
 
@@ -725,6 +818,26 @@
 </div>
 
 <script>
+    let charColorMap = {};
+    let channelConfigs = {};
+    let rawLogData = [];
+    let hoList = [];
+    let activeIndex = null;
+    let moveSourceIndex = null;
+    let moveRangeStart = null;
+    let moveRangeEnd = null;
+    let moveMode = false;
+    let editingIndex = null;
+
+    let hoverInsertIndex = null;
+    let hoverInsertTop = null;
+    let hoverBoundaryIndex = null;
+    let hoverBoundaryTop = null;
+
+    let pendingPointerEvent = null;
+    let pointerRenderQueued = false;
+
+    let tocEditIndex = null;
 
     function normalizeImportedText(text) {
         if (typeof text !== 'string') return text;
@@ -779,25 +892,7 @@
     }
 }
 
-    let charColorMap = {};
-    let channelConfigs = {};
-    let rawLogData = [];
-    let hoList = [];
-    let activeIndex = null;
-    let moveSourceIndex = null;
-    let moveRangeStart = null;
-    let moveRangeEnd = null;
-    let moveMode = false;
-    let editingIndex = null;
-
-    let hoverInsertIndex = null;
-    let hoverInsertTop = null;
-    let hoverBoundaryIndex = null;
-    let hoverBoundaryTop = null;
-
-    let pendingPointerEvent = null;
-    let pointerRenderQueued = false;
-
+    
 
     const THEME_PRESETS = {
         light: { kpText: "#4a4a4a", infoBg: "#f9f9f9", otherBg: "#cfdbe3", customBg: "#f9f9f9" },
@@ -843,9 +938,9 @@
         );
         
         html = html
-            .replace(/-#([\s\S]*?)#-/g, '<span style="font-size: 0.85em; opacity: 0.6;">$1</span>')
-            .replace(/##([\s\S]*?)##/g, '<h2 style="margin: 5px 0; font-size: 1.2em;">$1</h2>')
-            .replace(/#([\s\S]*?)#/g, '<h1 style="margin: 10px 0; font-size: 1.4em;">$1</h1>')
+            .replace(/#-([\s\S]*?)-#/g, '<span style="font-size: 0.85em; opacity: 0.6;">$1</span>')
+            .replace(/#H2-([\s\S]*?)-H2#/g, '<h2 style="margin: 5px 0; font-size: 1.2em;">$1</h2>')
+            .replace(/#H1-([\s\S]*?)-H1#/g, '<h1 style="margin: 10px 0; font-size: 1.4em;">$1</h1>')
 
             // 先處理刪除線，避免和下標衝突
             .replace(/~~([\s\S]*?)~~/g, '<del>$1</del>')
@@ -948,6 +1043,10 @@
     function removeHORow(index) { hoList.splice(index, 1); renderHOEditor(); saveToLocal(); }
 
     function switchMode(mode) {
+        if (editingIndex !== null) {
+            commitEditing({ rerender: false });
+        }
+
         document.body.setAttribute('data-mode', mode);
         document.getElementById('btn-view').classList.toggle('active', mode === 'view');
         document.getElementById('btn-edit').classList.toggle('active', mode === 'edit');
@@ -955,8 +1054,13 @@
         if (mode !== 'edit') {
             activeIndex = null;
             moveSourceIndex = null;
+            moveRangeStart = null;
+            moveRangeEnd = null;
             moveMode = false;
             editingIndex = null;
+            tocEditIndex = null;
+            clearFloatingInsertLine();
+            clearFloatingBoundaryHint();
         }
 
         liveRenderLog();
@@ -1303,7 +1407,7 @@
                     </div>`;
             }
 
-           
+            const tocMarked = !!item.showInTOC;
            
             const editUI = (currentMode === 'edit' && index === activeIndex) ? 
             `<div class="edit-tools">
@@ -1311,6 +1415,7 @@
                 <button onpointerdown="startMoveItemDirect(event, ${index})" title="移動">↕</button>
                 <button onclick="event.stopPropagation(); deleteLogItem(${index})" title="刪除">🗑</button>
                 <button onclick="event.stopPropagation(); addLogItemBelow(${index})" title="新增">＋</button>
+                <button onclick="event.stopPropagation(); toggleTOCEditor(${index})" title="目錄" style="${tocMarked ? 'background: rgba(166,124,82,0.15); border-color: var(--primary-color);' : ''}">⌖</button>
             </div>` : '';
 
             if (renderType === 'main') {
@@ -1338,17 +1443,33 @@
 
             
 
-            wrap.innerHTML = editUI  + contentHTML;
+            let tocEditorHTML = '';
+
+            if (currentMode === 'edit' && tocEditIndex === index) {
+                tocEditorHTML = `
+                    <div class="toc-inline-editor" onclick="event.stopPropagation()">
+                        <label style="display:flex; align-items:center; gap:8px; margin:0 0 8px 0; font-size:13px;">
+                            <input type="checkbox" ${item.showInTOC ? 'checked' : ''} onchange="setItemShowInTOC(${index}, this.checked)">
+                            加入目錄
+                        </label>
+                        <input type="text"
+                            value="${(item.tocTitle || '').replace(/"/g, '&quot;')}"
+                            placeholder="${getDefaultTOCTitle(item)}"
+                            oninput="setItemTOCTitle(${index}, this.value)"
+                            style="width:100%; padding:8px 10px; border:1px solid var(--border-color); border-radius:8px; box-sizing:border-box; font-size:13px;">
+                    </div>
+                `;
+            }
+
+            wrap.innerHTML = editUI + contentHTML + tocEditorHTML;
 
             out.appendChild(wrap);
             lastRenderedType = renderType;
         });
-        const overlay = document.createElement('div');
-        overlay.className = 'overlay-layer';
-        out.appendChild(overlay);
 
         checkMerging();
         renderFloatingBoundaryHint();
+        renderTOC();
     }
 
 
@@ -1506,7 +1627,8 @@
                         ch,
                         name,
                         html: normalizedText,
-                        raw: normalizedText
+                        showInTOC: false,
+                        tocTitle: ''
                     });
                 }
             });
@@ -1631,6 +1753,91 @@
         saveToLocal();
     }
 
+   
+
+    function getDefaultTOCTitle(item) {
+        if (!item || !item.html) return '未命名';
+        return item.html.replace(/\n+/g, ' ').trim().slice(0, 20) || '未命名';
+    }
+
+    function buildTOCItems() {
+        return rawLogData
+            .map((item, index) => ({ item, index }))
+            .filter(({ item }) => item.showInTOC)
+            .map(({ item, index }) => ({
+                index,
+                title: (item.tocTitle || '').trim() || getDefaultTOCTitle(item)
+            }));
+    }
+
+    function renderTOC() {
+        const list = document.getElementById('toc-list');
+        if (!list) return;
+
+        const items = buildTOCItems();
+        list.innerHTML = '';
+
+        if (!items.length) {
+            list.innerHTML = `<div style="padding:10px; font-size:13px; opacity:0.65;">尚未加入目錄項目</div>`;
+            return;
+        }
+
+        items.forEach(({ index, title }) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'toc-item';
+            btn.dataset.index = index;
+            btn.textContent = title;
+
+            btn.addEventListener('click', () => {
+                scrollToLogItem(index);
+            });
+
+            list.appendChild(btn);
+        });
+    }
+
+    function scrollToLogItem(index) {
+        const el = document.querySelector(`#out-content .log-item[data-index="${index}"]`);
+        if (!el) return;
+
+        el.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+        });
+
+        activeIndex = index;
+        liveRenderLog();
+    }
+
+    function toggleTOCEditor(index) {
+        if (tocEditIndex === index) {
+            tocEditIndex = null;
+        } else {
+            tocEditIndex = index;
+        }
+        liveRenderLog();
+    }
+
+    function setItemShowInTOC(index, checked) {
+        if (!rawLogData[index]) return;
+        rawLogData[index].showInTOC = checked;
+
+        if (checked && !rawLogData[index].tocTitle) {
+            rawLogData[index].tocTitle = getDefaultTOCTitle(rawLogData[index]);
+        }
+
+        saveToLocal();
+        liveRenderLog();
+    }
+
+    function setItemTOCTitle(index, value) {
+        if (!rawLogData[index]) return;
+        rawLogData[index].tocTitle = value;
+        saveToLocal();
+        renderTOC();
+    }
+
     document.getElementById('out-content').addEventListener('mousemove', function(e) {
         if (document.body.getAttribute('data-mode') !== 'edit') return;
         if (!moveMode) return;
@@ -1680,9 +1887,10 @@
             ch: source.ch,
             name: source.name,
             html: '',
-            raw: '',
             align: 'left',
-            splitBefore: true
+            splitBefore: true,
+            showInTOC: false,
+            tocTitle: ''
         };
 
         const newIndex = index + 1;
@@ -1783,53 +1991,7 @@
         startMoveItem(index);
     }
 
-    // function renderFloatingSplitLines(overlay) {
-    //     if (!overlay) return;
-    //     if (document.body.getAttribute('data-mode') !== 'edit') return;
-    //     if (!moveMode) return;
 
-    //     const out = document.getElementById('out-content');
-    //     const outRect = out.getBoundingClientRect();
-
-    //     for (let index = 0; index < rawLogData.length - 1; index++) {
-    //         const item = rawLogData[index];
-    //         const nextItem = rawLogData[index + 1];
-
-    //         const canToggleThisBoundary =
-    //             nextItem &&
-    //             item.ch !== '[main]' &&
-    //             item.ch !== '[other]' &&
-    //             nextItem.ch !== '[main]' &&
-    //             nextItem.ch !== '[other]' &&
-    //             canAutoJoin(item, nextItem);
-
-    //         if (!canToggleThisBoundary) continue;
-
-    //         const currentEl = out.querySelector(`.log-item[data-index="${index}"]`);
-    //         if (!currentEl) continue;
-
-    //         const rect = currentEl.getBoundingClientRect();
-    //         const top = rect.bottom - outRect.top;
-
-    //         const line = document.createElement('div');
-    //         line.className = 'overlay-split-line';
-    //         line.style.top = `${top}px`;
-
-    //         const isSplit = !!rawLogData[index + 1]?.splitBefore;
-    //         line.innerHTML = `
-    //             <button type="button">
-    //                 ${isSplit ? '點此處融合' : '點此處拆開'}
-    //             </button>
-    //         `;
-
-    //         line.querySelector('button').addEventListener('click', function(e) {
-    //             e.stopPropagation();
-    //             toggleGroupBoundary(index + 1);
-    //         });
-
-    //         overlay.appendChild(line);
-    //     }
-    // }
     function captureViewportAnchor() {
         const items = [...document.querySelectorAll('#out-content .log-item')];
         if (!items.length) return null;
