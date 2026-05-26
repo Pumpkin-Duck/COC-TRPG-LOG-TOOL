@@ -537,6 +537,60 @@
             color: #a0a0a0;
         }
 
+        .md-inline-code {
+            font-family: Consolas, Monaco, monospace;
+            font-size: 0.92em;
+            padding: 0.1em 0.35em;
+            border-radius: 4px;
+            background: rgba(127, 127, 127, 0.16);
+        }
+
+        .md-code-block {
+            white-space: pre-wrap;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: rgba(127, 127, 127, 0.14);
+            overflow-x: auto;
+        }
+
+        .md-list {
+            margin: 0.15em 0 0.15em 1.2em;
+            padding-left: 1.1em;
+            line-height: 1.45;
+        }
+
+        .md-list li {
+            margin: 0.02em 0;
+            padding: 0;
+            line-height: 1.45;
+        }
+
+        .md-list .md-list {
+            margin-top: 0.02em;
+            margin-bottom: 0.02em;
+            line-height: 1.45;
+        }
+
+        .md-list .md-list li {
+            margin: 0.01em 0;
+            padding: 0;
+            line-height: 1.45;
+        }
+
+        .log-time-label {
+            margin-left: 8px;
+            font-size: 0.78em;
+            opacity: 0.55;
+            font-weight: normal;
+        }
+
+        .log-time-label.no-name-time {
+            margin-left: 0;
+        }
+
         .inline-setting-row {
             margin-top: 25px;
             display: flex;
@@ -572,7 +626,6 @@
         [data-theme="dark"] .mini-action-btn {
             background: #6e7a68;
         }
-
 
         .toc-panel {
             position: fixed;
@@ -956,14 +1009,21 @@
         </div>
 
         <div class="file-upload-wrapper no-print">
-            <label>上傳 CCFOLIA 下載的 Log HTML 檔案</label>
-            <input type="file" id="html-file" accept=".html">
+            <label>上傳 CCFOLIA 或 Discord 的 Log HTML 檔案</label>
+            <input type="file" id="html-file" accept=".html" multiple>
+            <label style="margin-top:28px;">上傳 Discord 匯出的資料夾</label>
+            <input type="file" id="discord-folder-input" webkitdirectory multiple>
         </div>
         
         <div class="inline-setting-row">
             <label class="inline-checkbox">
                 <input type="checkbox" id="global-show-name" checked onchange="liveRenderLog(); saveToLocal();">
                 顯示對話名字
+            </label>
+
+            <label class="inline-checkbox">
+                <input type="checkbox" id="global-show-time" onchange="globalShowTime = this.checked; liveRenderLog(); saveToLocal();">
+                顯示時間
             </label>
 
             <button type="button" class="mini-action-btn" onclick="applyMonochromeTextColors()">
@@ -1014,6 +1074,7 @@
     let charColorMap = {};
     let detectedCharColorMap = {};
     let manualCharColorMap = {};
+    let charNameVisibilityMap = {};
     let channelConfigs = {};
     let rawLogData = [];
     let hoList = [];
@@ -1026,6 +1087,8 @@
     let logViewMode = 'mixed';
     let activeChannelTab = '[main]';
     let logScrollPositions = {};
+    let globalShowTime = false;
+    let activeBlobUrls = [];
 
     let hoverInsertIndex = null;
     let hoverInsertTop = null;
@@ -1146,7 +1209,7 @@
         }
     });
 
-    function parseCustomMarkdown(text) {
+    function parseCustomMarkdownLegacy(text) {
         if (!text) return "";
 
         let html = text;
@@ -1194,6 +1257,253 @@
         return html;
     }
 
+    function escapeHtml(text) {
+        return String(text || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function renderMarkdownLists(text) {
+        const lines = String(text || '').split('\n');
+        const out = [];
+        let inList = false;
+        let inSubList = false;
+        let openTopItem = false;
+
+        function closeList() {
+            if (!inList) return;
+            if (inSubList) {
+                out.push('</ul>');
+                inSubList = false;
+            }
+            if (openTopItem) {
+                out.push('</li>');
+                openTopItem = false;
+            }
+            out.push('</ul>');
+            inList = false;
+        }
+
+        lines.forEach(line => {
+            const match = line.match(/^(\s{0,2})([-*])\s+(.+)$/);
+            if (!match) {
+                closeList();
+                out.push(line);
+                return;
+            }
+
+            const level = match[1].length >= 2 ? 1 : 0;
+            const content = match[3];
+
+            if (level === 0) {
+                if (!inList) {
+                    out.push('<ul class="md-list">');
+                    inList = true;
+                }
+                if (inSubList) {
+                    out.push('</ul>');
+                    inSubList = false;
+                }
+                if (openTopItem) out.push('</li>');
+                out.push(`<li>${content}`);
+                openTopItem = true;
+                return;
+            }
+
+            if (!inList) {
+                out.push('<ul class="md-list">');
+                inList = true;
+                out.push('<li>');
+                openTopItem = true;
+            }
+            if (!inSubList) {
+                out.push('<ul class="md-list">');
+                inSubList = true;
+            }
+            out.push(`<li>${content}</li>`);
+        });
+
+        closeList();
+        return out.join('\n');
+    }
+
+    function parseCustomMarkdown(text) {
+        if (!text) return "";
+
+        const protectedParts = [];
+        const protect = html => {
+            const token = `@@MD_PROTECTED_${protectedParts.length}@@`;
+            protectedParts.push(html);
+            return token;
+        };
+
+        let html = String(text);
+
+        html = html.replace(/```([\s\S]*?)```/g, function(match, code) {
+            code = code.replace(/^\n/, '').replace(/\n$/, '');
+            return protect(`<pre class="md-code-block"><code>${escapeHtml(code)}</code></pre>`);
+        });
+
+        html = html.replace(/`([^`\n]+?)`/g, function(match, code) {
+            return protect(`<code class="md-inline-code">${escapeHtml(code)}</code>`);
+        });
+
+        html = html
+            .replace(/#-([\s\S]*?)-#/g, '<span style="font-size: 0.85em; opacity: 0.6;">$1</span>')
+            .replace(/#H3-([\s\S]*?)-H3#/g, '<h3 style="margin: 5px 0; font-size: 1.08em;">$1</h3>')
+            .replace(/#H2-([\s\S]*?)-H2#/g, '<h2 style="margin: 5px 0; font-size: 1.2em;">$1</h2>')
+            .replace(/#H1-([\s\S]*?)-H1#/g, '<h1 style="margin: 10px 0; font-size: 1.4em;">$1</h1>');
+
+        html = html.replace(
+            /(?:^|\n)((?:>\s?.*(?:\n|$))+)/g,
+            function(match, quoteBlock) {
+                const prefix = match.startsWith('\n') ? '\n' : '';
+                const content = quoteBlock
+                    .split('\n')
+                    .filter(line => line.trim() !== '')
+                    .map(line => line.replace(/^>\s?/, ''))
+                    .join('<br>');
+
+                return `${prefix}<div class="md-quote">${content}</div>`;
+            }
+        );
+
+        html = renderMarkdownLists(html);
+
+        html = html
+            .replace(/~~([\s\S]*?)~~/g, '<del>$1</del>')
+            .replace(/\*\*([\s\S]*?)\*\*/g, '<b>$1</b>')
+            .replace(/\/\/([\s\S]*?)\/\//g, '<i>$1</i>')
+            .replace(/__([\s\S]*?)__/g, '<u>$1</u>')
+            .replace(/\^([^^\n]+?)\^/g, '<sup>$1</sup>')
+            .replace(/~([^~\n]+?)~/g, '<sub>$1</sub>');
+
+        html = html.replace(/\n/g, '<br>');
+        protectedParts.forEach((part, index) => {
+            html = html.replaceAll(`@@MD_PROTECTED_${index}@@`, part);
+        });
+
+        return html;
+    }
+
+    function discordHtmlToCustomMarkdown(contentEl) {
+        if (!contentEl) return "";
+
+        const inlineTags = new Set(['STRONG', 'B', 'EM', 'I', 'U', 'S', 'DEL', 'CODE', 'SPAN', 'A']);
+
+        function childrenToMarkdown(node) {
+            return Array.from(node.childNodes).map(nodeToMarkdown).join('');
+        }
+
+        function blockText(text) {
+            return String(text || '').replace(/\n{3,}/g, '\n\n').trim();
+        }
+
+        function listToMarkdown(listEl, depth = 0) {
+            return Array.from(listEl.children)
+                .filter(child => child.tagName === 'LI')
+                .map(li => {
+                    const nested = Array.from(li.children).filter(child => child.tagName === 'UL');
+                    const own = Array.from(li.childNodes)
+                        .filter(child => !(child.nodeType === Node.ELEMENT_NODE && child.tagName === 'UL'))
+                        .map(nodeToMarkdown)
+                        .join('')
+                        .trim();
+                    const prefix = `${'  '.repeat(depth)}- `;
+                    const nestedText = nested.map(child => listToMarkdown(child, depth + 1)).filter(Boolean).join('\n');
+                    return nestedText ? `${prefix}${own}\n${nestedText}` : `${prefix}${own}`;
+                })
+                .join('\n');
+        }
+
+        function quoteToMarkdown(node) {
+            const content = node.querySelector('.chatlog__markdown-quote-content') || node;
+            return blockText(childrenToMarkdown(content))
+                .split('\n')
+                .map(line => `> ${line}`)
+                .join('\n');
+        }
+
+        function nodeToMarkdown(node) {
+            if (node.nodeType === Node.TEXT_NODE) return node.nodeValue || '';
+            if (node.nodeType !== Node.ELEMENT_NODE) return '';
+
+            const tag = node.tagName;
+            const cls = node.classList || { contains: () => false };
+
+            if (tag === 'BR') return '\n';
+            if (cls.contains('chatlog__markdown-quote')) return `\n${quoteToMarkdown(node)}\n`;
+            if (tag === 'H1') return `\n#H1-${blockText(childrenToMarkdown(node))}-H1#\n`;
+            if (tag === 'H2') return `\n#H2-${blockText(childrenToMarkdown(node))}-H2#\n`;
+            if (tag === 'H3') return `\n#H3-${blockText(childrenToMarkdown(node))}-H3#\n`;
+            if (tag === 'PRE' || cls.contains('chatlog__markdown-pre--multiline')) {
+                return `\n\`\`\`\n${node.textContent.replace(/\n$/, '')}\n\`\`\`\n`;
+            }
+            if (tag === 'CODE' || cls.contains('chatlog__markdown-pre--inline')) return `\`${node.textContent}\``;
+            if (tag === 'STRONG' || tag === 'B') return `**${childrenToMarkdown(node)}**`;
+            if (tag === 'EM' || tag === 'I') return `//${childrenToMarkdown(node)}//`;
+            if (tag === 'U') return `__${childrenToMarkdown(node)}__`;
+            if (tag === 'S' || tag === 'DEL') return `~~${childrenToMarkdown(node)}~~`;
+            if (tag === 'UL') return `\n${listToMarkdown(node)}\n`;
+            if (tag === 'LI') return childrenToMarkdown(node);
+            if (cls.contains('chatlog__markdown-mention') || cls.contains('chatlog__markdown-spoiler')) return node.textContent || '';
+
+            const content = childrenToMarkdown(node);
+            if (tag === 'P' || tag === 'DIV') return inlineTags.has(tag) ? content : `${content}\n`;
+            return content;
+        }
+
+        let markdown = childrenToMarkdown(contentEl);
+        const protectedMarkdown = [];
+        markdown = markdown.replace(/```[\s\S]*?```/g, block => {
+            const token = `@@DISCORD_MD_PROTECTED_${protectedMarkdown.length}@@`;
+            protectedMarkdown.push(block);
+            return token;
+        });
+        markdown = markdown
+            .replace(/^\s*###\s+(.+)$/gm, '#H3-$1-H3#')
+            .replace(/^\s*##\s+(.+)$/gm, '#H2-$1-H2#')
+            .replace(/^\s*#\s+(.+)$/gm, '#H1-$1-H1#')
+            .replace(/^\s*-#\s*(.+)$/gm, '#-$1-#')
+            .replace(/[ \t]+\n/g, '\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+        protectedMarkdown.forEach((block, index) => {
+            markdown = markdown.replaceAll(`@@DISCORD_MD_PROTECTED_${index}@@`, block);
+        });
+
+        return markdown;
+    }
+
+    function sortLogItems(items) {
+        const hasSortableTimestamp = item => item.timestamp !== null && item.timestamp !== undefined && Number.isFinite(Number(item.timestamp));
+
+        return [...(items || [])]
+            .map((item, index) => ({ item, index }))
+            .sort((a, b) => {
+                const aHasTime = hasSortableTimestamp(a.item);
+                const bHasTime = hasSortableTimestamp(b.item);
+                if (!aHasTime && !bHasTime) return a.index - b.index;
+                if (!aHasTime) return 1;
+                if (!bHasTime) return -1;
+
+                const timeDiff = Number(a.item.timestamp) - Number(b.item.timestamp);
+                if (timeDiff !== 0) return timeDiff;
+
+                const idDiff = String(a.item.messageId || '').localeCompare(String(b.item.messageId || ''), undefined, { numeric: true });
+                if (idDiff !== 0) return idDiff;
+
+                const aSub = Number.isFinite(Number(a.item.subOrder)) ? Number(a.item.subOrder) : (a.item.type === 'image' ? 1 : 0);
+                const bSub = Number.isFinite(Number(b.item.subOrder)) ? Number(b.item.subOrder) : (b.item.type === 'image' ? 1 : 0);
+                const subDiff = aSub - bSub;
+                return subDiff !== 0 ? subDiff : a.index - b.index;
+            })
+            .map(entry => entry.item);
+    }
+
     function escapeAttr(text) {
         return String(text || '')
             .replace(/&/g, '&amp;')
@@ -1214,8 +1524,9 @@
             activeChannelTab,
             logScrollPositions,
             globalShowName: document.getElementById('global-show-name').checked,
+            globalShowTime: document.getElementById('global-show-time')?.checked || false,
             imgSrc: document.getElementById('image-preview').querySelector('img')?.src || '',
-            charColorMap, detectedCharColorMap, manualCharColorMap, channelConfigs, rawLogData,
+            charColorMap, detectedCharColorMap, manualCharColorMap, charNameVisibilityMap, channelConfigs, rawLogData,
             isOutputVisible: document.getElementById('output').style.display === 'block'
         };
         localStorage.setItem('trpg_log_v44', JSON.stringify(data));
@@ -1236,10 +1547,14 @@
         logScrollPositions = data.logScrollPositions || {};
         updateLogViewModeButtons();
         document.getElementById('global-show-name').checked = (data.globalShowName !== undefined) ? data.globalShowName : true;
+        globalShowTime = (data.globalShowTime !== undefined) ? data.globalShowTime : false;
+        const globalShowTimeEl = document.getElementById('global-show-time');
+        if (globalShowTimeEl) globalShowTimeEl.checked = globalShowTime;
         if (data.imgSrc) document.getElementById('image-preview').innerHTML = `<img src="${data.imgSrc}" style="max-width:100%; max-height:100%; border-radius:12px;">`;
         charColorMap = data.charColorMap || {};
         detectedCharColorMap = data.detectedCharColorMap || {};
         manualCharColorMap = data.manualCharColorMap || {};
+        charNameVisibilityMap = data.charNameVisibilityMap || {};
         channelConfigs = data.channelConfigs || {};
         if (data.rawLogData) {
             rawLogData = data.rawLogData;
@@ -1660,12 +1975,24 @@
 
     function updateColorsToTheme(theme) {
         const preset = THEME_PRESETS[theme];
-        if (charColorMap["KP（空白）"]) charColorMap["KP（空白）"] = preset.kpText;
+        const defaultTextColor = getDefaultLogTextColor(theme);
+        charColorMap["KP（空白）"] = preset.kpText;
+        charColorMap["KP嚗征?踝?"] = preset.kpText;
+        Object.keys(charColorMap).forEach(name => {
+            if (name === "KP（空白）" || name === "KP嚗征?踝?") return;
+            if (manualCharColorMap[name]) return;
+            if (detectedCharColorMap[name]) return;
+            charColorMap[name] = defaultTextColor;
+        });
         Object.keys(channelConfigs).forEach(ch => {
             const conf = channelConfigs[ch];
             conf.bgColor = (ch === '[info]') ? preset.infoBg : (ch === '[other]') ? preset.otherBg : preset.customBg;
         });
         renderConfigPanel(); liveRenderLog();
+    }
+
+    function getDefaultLogTextColor(theme = document.body.getAttribute('data-theme')) {
+        return theme === 'dark' ? '#d1d1d1' : '#4a4a4a';
     }
 
     function makeEditable(index) {
@@ -1769,6 +2096,7 @@
         out.innerHTML = '';
         renderChannelTabs();
         const globalShowName = document.getElementById('global-show-name')?.checked;
+        globalShowTime = document.getElementById('global-show-time')?.checked || false;
         const currentMode = document.body.getAttribute('data-mode');
         let lastRenderedType = null;
               
@@ -1779,6 +2107,7 @@
             const wrap = document.createElement('div'); 
             wrap.className = 'log-item';
             wrap.dataset.index = index;
+            wrap.dataset.channel = item.ch || '';
 
             if (currentMode === 'edit' && index === activeIndex) {
                 wrap.classList.add('active-item');
@@ -1799,9 +2128,12 @@
                 wrap.classList.add('move-source');
             }
 
-            const displayColor = (item.name === "" || item.name === "system") ? charColorMap["KP（空白）"] : (charColorMap[item.name] || "#4a4a4a");
-            const shouldShowName = (item.ch === '[other]' || (globalShowName && item.name && item.name !== "system"));
-            const nameLabel = shouldShowName ? `<span class="char-name-label" style="color:${displayColor}">${item.name}</span>` : '';
+            const displayColor = (item.name === "" || item.name === "system") ? (charColorMap["KP（空白）"] || charColorMap["KP嚗征?踝?"] || getDefaultLogTextColor()) : (charColorMap[item.name] || getDefaultLogTextColor());
+            const isNameVisibleForChar = item.name && charNameVisibilityMap[item.name] !== false;
+            const shouldShowName = !!(globalShowName && item.name && item.name !== "system" && isNameVisibleForChar);
+            const shouldShowTime = !!(globalShowTime && item.displayTime);
+            const timeLabel = shouldShowTime ? `<span class="log-time-label${shouldShowName ? '' : ' no-name-time'}">${escapeAttr(item.displayTime)}</span>` : '';
+            const nameLabel = (shouldShowName || shouldShowTime) ? `<span class="char-name-label" style="color:${displayColor}">${shouldShowName ? escapeAttr(item.name) : ''}${timeLabel}</span>` : '';
             const parsedContent = parseCustomMarkdown(item.html);
             const alignStyle = item.align === "center" ? "text-align:center;" : "";
             const textHTML = `<div class="text-content" >${parsedContent}</div>`;
@@ -1991,7 +2323,10 @@
         item.name = nextName;
 
         if (nextName && nextName !== 'system' && !charColorMap[nextName]) {
-            charColorMap[nextName] = detectedCharColorMap[nextName] || item.detectedColor || charColorMap["KP（空白）"] || "#4a4a4a";
+            charColorMap[nextName] = detectedCharColorMap[nextName] || item.detectedColor || charColorMap["KP（空白）"] || charColorMap["KP嚗征?踝?"] || getDefaultLogTextColor();
+        }
+        if (nextName && nextName !== 'system' && charNameVisibilityMap[nextName] === undefined) {
+            charNameVisibilityMap[nextName] = true;
         }
 
         liveRenderLog();
@@ -2150,24 +2485,730 @@
         infoBarEl.innerHTML = infoBarHTML; infoBarEl.style.display = infoBarHTML ? 'block' : 'none';
     }
 
-    function downloadHTML() {
+    function downloadHTMLLegacy() {
+        // TODO: 下載 HTML 前需將 blob URL 圖片轉成 base64，否則離開本頁後圖片會失效。
         const title = document.getElementById('scenario-name').value || 'Log', content = document.getElementById('output').innerHTML, style = document.querySelector('style').innerHTML, currentTheme = document.body.getAttribute('data-theme');
         const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>${style} #output{display:block;border:none;padding:20px;} .no-print { display:none !important; } .log-item { cursor: default; } .edit-btn, .mode-switcher { display: none !important; } </style></head><body data-theme="${currentTheme}"><div class="container">${content}</div></body></html>`;
         const blob = new Blob([fullHTML], { type: 'text/html' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${title}.html`; a.click();
     }
 
-    function rgbToHex(rgb) { if (!rgb || !rgb.startsWith('rgb')) return rgb; const res = rgb.match(/\d+/g).map(x => parseInt(x).toString(16).padStart(2, '0')); return `#${res.join('')}`; }
+    function buildExportChannelTabsHTML(channels) {
+        if (!channels.length) return '';
+        const totalCount = channels.reduce((sum, channel) => sum + channel.count, 0);
+        const buttons = [
+            `<button type="button" class="channel-tab-btn active" data-channel="__all__">全部<span class="channel-tab-count">${totalCount}</span></button>`,
+            ...channels.map(channel => `<button type="button" class="channel-tab-btn" data-channel="${escapeAttr(channel.ch)}">${escapeAttr(channel.label)}<span class="channel-tab-count">${channel.count}</span></button>`)
+        ].join('');
+        return `<div class="channel-tabs export-channel-tabs">${buttons}</div>`;
+    }
+
+    function buildExportTOCHTML() {
+        const items = buildTOCItems();
+        const listHTML = items.length
+            ? items.map(({ index, title }) => {
+                const ch = rawLogData[index]?.ch || '';
+                return `<button type="button" class="toc-item" data-index="${index}" data-channel="${escapeAttr(ch)}">${escapeAttr(title)}</button>`;
+            }).join('')
+            : `<div style="padding:10px; font-size:13px; opacity:0.65;">尚未加入目錄項目</div>`;
+        return `<aside class="toc-panel export-toc-panel" id="toc-panel"><div class="toc-tab">目錄</div><div class="toc-header">目錄</div><div class="toc-list" id="toc-list">${listHTML}</div></aside>`;
+    }
+
+    function buildExportInteractiveScript() {
+        return `<script>(function(){const tabs=Array.from(document.querySelectorAll('.export-channel-tabs .channel-tab-btn'));const items=Array.from(document.querySelectorAll('#out-content .log-item'));function setChannel(channel){tabs.forEach(tab=>tab.classList.toggle('active',tab.dataset.channel===channel));items.forEach(item=>{item.style.display=(channel==='__all__'||item.dataset.channel===channel)?'':'none';});}tabs.forEach(tab=>{tab.addEventListener('click',()=>setChannel(tab.dataset.channel||'__all__'));});document.querySelectorAll('.toc-item[data-index]').forEach(btn=>{btn.addEventListener('click',()=>{const channel=btn.dataset.channel||'__all__';const target=document.querySelector('#out-content .log-item[data-index="'+btn.dataset.index+'"]');if(!target)return;if(target.style.display==='none')setChannel(channel);target.scrollIntoView({behavior:'smooth',block:'center'});});});setChannel('__all__');})();<\/script>`;
+    }
+
+    function isBlobUrl(src) {
+        return typeof src === 'string' && src.startsWith('blob:');
+    }
+
+    async function blobUrlToDataUrl(blobUrl) {
+        const response = await fetch(blobUrl);
+        const blob = await response.blob();
+
+        return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    async function prepareLogDataForHtmlExport(items) {
+        const exportItems = JSON.parse(JSON.stringify(items || []));
+        let failedCount = 0;
+
+        for (const item of exportItems) {
+            if (item?.type !== 'image' || !item.isBlobUrl || !isBlobUrl(item.src)) continue;
+
+            try {
+                item.src = await blobUrlToDataUrl(item.src);
+                item.isBlobUrl = false;
+                item.isDataUrl = true;
+            } catch (error) {
+                failedCount++;
+                console.warn('Failed to convert blob image for export:', item, error);
+            }
+        }
+
+        if (failedCount > 0) {
+            console.warn(`${failedCount} image(s) failed to convert for export.`);
+        }
+
+        return exportItems;
+    }
+
+    function captureExportOutputHTML(exportItems = rawLogData) {
+        const prevRawLogData = rawLogData;
+        const prevLogViewMode = logViewMode;
+        const prevActiveChannelTab = activeChannelTab;
+        const prevActiveIndex = activeIndex;
+        const prevTocEditIndex = tocEditIndex;
+        const prevOutputDisplay = document.getElementById('output').style.display;
+
+        rawLogData = exportItems;
+        document.getElementById('output').style.display = 'block';
+        logViewMode = 'mixed';
+        activeIndex = null;
+        tocEditIndex = null;
+        liveUpdateHeader();
+        liveRenderLog();
+        const html = document.getElementById('output').innerHTML;
+
+        rawLogData = prevRawLogData;
+        logViewMode = prevLogViewMode;
+        activeChannelTab = prevActiveChannelTab;
+        activeIndex = prevActiveIndex;
+        tocEditIndex = prevTocEditIndex;
+        document.getElementById('output').style.display = prevOutputDisplay;
+        liveRenderLog();
+        return html;
+    }
+
+    async function downloadHTML() {
+        // TODO: 下載 HTML 前需將 blob URL 圖片轉成 base64，否則離開本頁後圖片會失效。
+        const blobImageCount = rawLogData.filter(item =>
+            item &&
+            item.type === 'image' &&
+            item.isBlobUrl === true &&
+            typeof item.src === 'string' &&
+            item.src.startsWith('blob:')
+        ).length;
+
+        if (blobImageCount > 0 && !confirm(`此團錄包含 ${blobImageCount} 張本地匯入圖片，下載 HTML 時會將圖片內嵌到檔案中，檔案可能較大。是否繼續？`)) {
+            return;
+        }
+
+        const button = document.querySelector('button[onclick="downloadHTML()"]');
+        const oldButtonText = button?.innerText;
+        if (button) {
+            button.innerText = '正在準備圖片...';
+            button.disabled = true;
+        } else {
+            console.log('Preparing images for export...');
+        }
+
+        try {
+        const exportTitle = document.getElementById('scenario-name').value || 'Log';
+        const shouldExportChannelTabs = logViewMode === 'channel';
+        const exportLogData = await prepareLogDataForHtmlExport(rawLogData);
+        const content = captureExportOutputHTML(exportLogData);
+        const style = document.querySelector('style').innerHTML;
+        const currentTheme = document.body.getAttribute('data-theme');
+        const tocHTML = buildExportTOCHTML();
+        const channelTabsHTML = shouldExportChannelTabs ? buildExportChannelTabsHTML(getChannelSummaries()) : '';
+        const exportStyle = `#output{display:block;border:none;padding:20px;} .no-print{display:none !important;} .log-item{cursor:default;} .edit-btn,.edit-tools,.mode-switcher,.item-meta-editor,.toc-inline-editor{display:none !important;} .export-channel-tabs{display:flex !important;} .export-toc-panel{display:block !important;} ${shouldExportChannelTabs ? 'body{padding-bottom:96px;}' : ''}`;
+        const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(exportTitle)}</title><style>${style}${exportStyle}</style></head><body data-theme="${currentTheme}">${tocHTML}<div class="container"><div id="output">${content}</div></div>${channelTabsHTML}${buildExportInteractiveScript()}</body></html>`;
+        const blob = new Blob([fullHTML], { type: 'text/html' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${exportTitle}.html`; a.click();
+        } finally {
+            if (button) {
+                button.innerText = oldButtonText;
+                button.disabled = false;
+            }
+        }
+    }
+
+    function rgbToHex(rgb) { if (!rgb || !rgb.startsWith('rgb')) return rgb; const res = rgb.match(/\d+/g).slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')); return `#${res.join('')}`; }
     function handleFileSelect(i) { if (i.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:100%; border-radius:12px;">`; if(document.getElementById('output').style.display === 'block') liveUpdateHeader(); saveToLocal(); }; r.readAsDataURL(i.files[0]); } }
 
-    document.getElementById('html-file').addEventListener('change', e => {
+    function detectLogSource(htmlText) {
+        const text = String(htmlText || '');
+        const discordMarkers = [
+            'chatlog__message-container',
+            'chatlog__author',
+            'chatlog__timestamp',
+            'chatlog__content',
+            'preamble__entry'
+        ];
+        const hasMessageContainer = text.includes('chatlog__message-container');
+        const hitCount = discordMarkers.filter(marker => text.includes(marker)).length;
+
+        return hasMessageContainer && hitCount >= 3 ? 'discord' : 'ccfolia';
+    }
+
+    function getDiscordMeta(doc) {
+        const entries = Array.from(doc.querySelectorAll('.preamble__entry'))
+            .map(el => (el.textContent || '').trim())
+            .filter(Boolean);
+
+        const guildName = entries[0] || '';
+        const channelPath = entries[1] || '';
+        const pathParts = channelPath.split('/').map(part => part.trim()).filter(Boolean);
+        const channelName = pathParts[pathParts.length - 1] || channelPath.trim() || 'Discord';
+
+        return {
+            guildName,
+            channelPath,
+            channelName
+        };
+    }
+
+    function normalizeDiscordDisplayTime(text) {
+        return String(text || '')
+            .replace(/\s*星期[一二三四五六日]\s*/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function makeUniqueChannelKey(baseCh, usedKeys) {
+        if (!usedKeys.has(baseCh)) {
+            usedKeys.add(baseCh);
+            return baseCh;
+        }
+
+        const closeIndex = baseCh.lastIndexOf(']');
+        const prefix = closeIndex >= 0 ? baseCh.slice(0, closeIndex) : baseCh;
+        const suffix = closeIndex >= 0 ? baseCh.slice(closeIndex) : '';
+        let counter = 2;
+        let nextCh = `${prefix}-${counter}${suffix}`;
+
+        while (usedKeys.has(nextCh)) {
+            counter++;
+            nextCh = `${prefix}-${counter}${suffix}`;
+        }
+
+        usedKeys.add(nextCh);
+        return nextCh;
+    }
+
+    function parseDiscordTimestamp(text, fallbackDate) {
+        text = normalizeDiscordDisplayTime(text);
+        if (!text) return null;
+
+        let normalized = text
+            .replace(/\s+/g, ' ')
+            .replace(/上午/g, 'AM')
+            .replace(/下午/g, 'PM')
+            .replace(/凌晨/g, 'AM')
+            .replace(/中午/g, 'PM')
+            .trim();
+
+        let match = normalized.match(/(\d{4})[\/\-年.](\d{1,2})[\/\-月.](\d{1,2})日?\s*(AM|PM)?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/i);
+        if (match) {
+            let hour = Number(match[5]);
+            const ampm = (match[4] || '').toUpperCase();
+            if (ampm === 'PM' && hour < 12) hour += 12;
+            if (ampm === 'AM' && hour === 12) hour = 0;
+            return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), hour, Number(match[6]), Number(match[7] || 0)).getTime();
+        }
+
+        match = normalized.match(/(AM|PM)\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/i);
+        if (match && fallbackDate) {
+            let hour = Number(match[2]);
+            const ampm = match[1].toUpperCase();
+            if (ampm === 'PM' && hour < 12) hour += 12;
+            if (ampm === 'AM' && hour === 12) hour = 0;
+            return new Date(fallbackDate.getFullYear(), fallbackDate.getMonth(), fallbackDate.getDate(), hour, Number(match[3]), Number(match[4] || 0)).getTime();
+        }
+
+        match = normalized.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+        if (match && fallbackDate) {
+            return new Date(fallbackDate.getFullYear(), fallbackDate.getMonth(), fallbackDate.getDate(), Number(match[1]), Number(match[2]), Number(match[3] || 0)).getTime();
+        }
+
+        const parsed = Date.parse(normalized);
+        return Number.isNaN(parsed) ? null : parsed;
+    }
+
+    function getDiscordAuthorColor(authorEl) {
+        if (!authorEl) return '';
+        const inlineColor = authorEl.style?.color || '';
+        if (inlineColor) return rgbToHex(inlineColor) || inlineColor;
+
+        const styleText = authorEl.getAttribute('style') || '';
+        const match = styleText.match(/color\s*:\s*([^;]+)/i);
+        return match ? (rgbToHex(match[1].trim()) || match[1].trim()) : '';
+    }
+
+    function isDiscordAttachmentImage(img) {
+        if (!img) return false;
+        if (img.closest('.chatlog__avatar, .chatlog__emoji, .chatlog__reaction, .chatlog__reactions, .chatlog__sticker, .preamble__guild-icon')) return false;
+        return img.matches('img.chatlog__attachment-media, .chatlog__attachment img, .chatlog__attachment-media img');
+    }
+
+    function safeDecodeURIComponent(path) {
+        try {
+            return decodeURIComponent(String(path || ''));
+        } catch (err) {
+            return String(path || '');
+        }
+    }
+
+    function normalizeAssetPath(path) {
+        return safeDecodeURIComponent(path)
+            .replace(/\\/g, '/')
+            .split(/[?#]/)[0]
+            .replace(/^\.?\//, '')
+            .replace(/\/+/g, '/')
+            .trim();
+    }
+
+    function stripTopFolder(path) {
+        const normalized = normalizeAssetPath(path);
+        const parts = normalized.split('/').filter(Boolean);
+        return parts.length > 1 ? parts.slice(1).join('/') : normalized;
+    }
+
+    function addAssetMapKey(map, key, file) {
+        const normalized = normalizeAssetPath(key);
+        if (normalized && !map.has(normalized)) map.set(normalized, file);
+    }
+
+    function buildDiscordAssetMap(files) {
+        const map = new Map();
+        Array.from(files || []).forEach(file => {
+            const relPath = file.webkitRelativePath || file.name || '';
+            if (!relPath) return;
+
+            addAssetMapKey(map, relPath, file);
+            addAssetMapKey(map, stripTopFolder(relPath), file);
+            addAssetMapKey(map, safeDecodeURIComponent(relPath), file);
+            addAssetMapKey(map, file.name, file);
+        });
+        return map;
+    }
+
+    function isExternalAssetSrc(src) {
+        return /^(https?:|data:|blob:|file:)/i.test(String(src || '').trim());
+    }
+
+    function getFileDirectory(file) {
+        const relPath = normalizeAssetPath(file?.webkitRelativePath || file?.name || '');
+        const index = relPath.lastIndexOf('/');
+        return index >= 0 ? relPath.slice(0, index) : '';
+    }
+
+    function resolveDiscordAssetFile(src, htmlFile, assetMap) {
+        if (!src || !assetMap || isExternalAssetSrc(src)) return null;
+
+        const htmlDir = getFileDirectory(htmlFile);
+        const normalizedSrc = normalizeAssetPath(src);
+        const candidates = [
+            src,
+            normalizedSrc,
+            safeDecodeURIComponent(src),
+            htmlDir ? `${htmlDir}/${normalizedSrc}` : normalizedSrc,
+            stripTopFolder(normalizedSrc),
+            htmlDir ? stripTopFolder(`${htmlDir}/${normalizedSrc}`) : ''
+        ];
+
+        for (const candidate of candidates) {
+            const key = normalizeAssetPath(candidate);
+            if (key && assetMap.has(key)) return assetMap.get(key);
+        }
+
+        return null;
+    }
+
+    function revokeActiveBlobUrls() {
+        activeBlobUrls.forEach(url => URL.revokeObjectURL(url));
+        activeBlobUrls = [];
+    }
+
+    function parseDiscordHtmlToRawLogData(htmlText, options = {}) {
+        const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+        const meta = getDiscordMeta(doc);
+        const channelName = options.channelName || meta.channelName || 'Discord';
+        const ch = options.ch || `[dc:${channelName}]`;
+        parseDiscordHtmlToRawLogData.discordMeta = { ...meta, channelName, ch };
+
+        const currentTheme = document.body.getAttribute('data-theme') || 'light';
+        channelConfigs[ch] = {
+            checked: true,
+            label: channelName,
+            bgColor: THEME_PRESETS[currentTheme].customBg,
+            borderColor: 'var(--primary-color)'
+        };
+
+        const items = [];
+        let lastAuthor = null;
+        let lastTimestamp = null;
+        let lastDate = null;
+
+        doc.querySelectorAll('.chatlog__message-container').forEach(container => {
+            const messageId = container.getAttribute('data-message-id') || '';
+            const authorEl = container.querySelector('.chatlog__author');
+            const fullTimeEl = container.querySelector('.chatlog__timestamp');
+            const shortTimeEl = container.querySelector('.chatlog__short-timestamp');
+
+            if (authorEl) {
+                const name = (authorEl.textContent || '').trim();
+                const detectedColor = getDiscordAuthorColor(authorEl);
+                lastAuthor = {
+                    name,
+                    originalAuthorName: name,
+                    detectedColor
+                };
+
+                if (name) {
+                    if (detectedColor && !detectedCharColorMap[name]) detectedCharColorMap[name] = detectedColor;
+                    if (!charColorMap[name]) charColorMap[name] = detectedColor || charColorMap["KP（空白）"] || charColorMap["KP嚗征?踝?"] || getDefaultLogTextColor();
+                    if (charNameVisibilityMap[name] === undefined) charNameVisibilityMap[name] = true;
+                }
+            }
+
+            const author = lastAuthor || { name: 'Discord', originalAuthorName: 'Discord', detectedColor: '#4a4a4a' };
+            const timeEl = fullTimeEl || shortTimeEl;
+            const titleTime = timeEl?.getAttribute('title') || '';
+            const textTime = (timeEl?.textContent || '').trim();
+            const displayTime = normalizeDiscordDisplayTime(titleTime || textTime || '');
+            const timestamp = parseDiscordTimestamp(titleTime || textTime, lastDate);
+            if (Number.isFinite(timestamp)) {
+                lastTimestamp = timestamp;
+                lastDate = new Date(timestamp);
+            }
+
+            const contentEl = container.querySelector('.chatlog__content, .chatlog__markdown');
+            const markdown = discordHtmlToCustomMarkdown(contentEl).trim();
+            const base = {
+                source: 'discord',
+                ch,
+                channelName,
+                name: author.name,
+                originalAuthorName: author.originalAuthorName,
+                speakerType: 'character',
+                displayTime,
+                timestamp: Number.isFinite(timestamp) ? timestamp : lastTimestamp,
+                messageId,
+                detectedColor: author.detectedColor || '#4a4a4a',
+                showInTOC: false,
+                tocTitle: ''
+            };
+
+            if (markdown) {
+                items.push({
+                    ...base,
+                    type: 'text',
+                    html: markdown,
+                    subOrder: 0
+                });
+            }
+
+            Array.from(container.querySelectorAll('img'))
+                .filter(isDiscordAttachmentImage)
+                .forEach((img, index) => {
+                    const src = img.getAttribute('src') || '';
+                    if (!src) return;
+                    const assetFile = resolveDiscordAssetFile(src, options.htmlFile, options.assetMap);
+                    const isLocalAsset = !!options.assetMap && !isExternalAssetSrc(src);
+                    let finalSrc = src;
+                    let isBlobUrl = false;
+                    let assetPath = '';
+
+                    if (assetFile) {
+                        finalSrc = URL.createObjectURL(assetFile);
+                        activeBlobUrls.push(finalSrc);
+                        isBlobUrl = true;
+                        assetPath = assetFile.webkitRelativePath || assetFile.name || '';
+                    } else if (isLocalAsset) {
+                        console.warn('Discord attachment asset not found:', src);
+                    }
+
+                    items.push({
+                        ...base,
+                        type: 'image',
+                        html: '',
+                        src: finalSrc,
+                        originalSrc: src,
+                        assetPath,
+                        isBlobUrl,
+                        missingLocalAsset: isLocalAsset && !assetFile,
+                        alt: img.getAttribute('alt') || 'Discord 圖片附件',
+                        parentMessageId: messageId,
+                        subOrder: index + 1
+                    });
+                });
+        });
+
+        return items;
+    }
+
+    function parseDiscordHtmlToImport(htmlText, fileName = '', usedChannelKeys = new Set(Object.keys(channelConfigs)), options = {}) {
+        const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+        const discordMeta = getDiscordMeta(doc);
+        const channelName = discordMeta.channelName || 'Discord';
+        const baseCh = `[dc:${channelName}]`;
+        const ch = makeUniqueChannelKey(baseCh, usedChannelKeys);
+        const items = parseDiscordHtmlToRawLogData(htmlText, { ...options, ch, channelName, fileName });
+
+        const textItems = items.filter(item => item.type !== 'image');
+        const imageItems = items.filter(item => item.type === 'image');
+        const resolvedLocalImageCount = imageItems.filter(item => item.isBlobUrl).length;
+        const missingLocalImageCount = imageItems.filter(item => item.missingLocalAsset).length;
+        const authorNames = [...new Set(items.map(item => item.name).filter(Boolean))];
+        const timedItems = items
+            .filter(item => item.timestamp !== null && item.timestamp !== undefined && Number.isFinite(Number(item.timestamp)))
+            .sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+        const firstItem = timedItems[0] || items[0] || null;
+        const lastItem = timedItems[timedItems.length - 1] || items[items.length - 1] || null;
+
+        return {
+            meta: {
+                source: 'discord',
+                fileName: fileName || '',
+                guildName: discordMeta.guildName || '',
+                channelPath: discordMeta.channelPath || '',
+                channelName,
+                ch,
+                messageCount: textItems.length,
+                imageCount: imageItems.length,
+                resolvedLocalImageCount,
+                missingLocalImageCount,
+                authorNames,
+                firstTimestamp: firstItem?.timestamp ?? null,
+                lastTimestamp: lastItem?.timestamp ?? null,
+                firstDisplayTime: firstItem?.displayTime || '',
+                lastDisplayTime: lastItem?.displayTime || ''
+            },
+            items
+        };
+    }
+
+    function readHtmlFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = ev => resolve(ev.target.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsText(file, "UTF-8");
+        });
+    }
+
+    function resetImportedLogState() {
+        revokeActiveBlobUrls();
+        charColorMap = {};
+        detectedCharColorMap = {};
+        manualCharColorMap = {};
+        charNameVisibilityMap = {};
+        channelConfigs = {};
+        rawLogData = [];
+        const currentTheme = document.body.getAttribute('data-theme') || 'light';
+        charColorMap["KP（空白）"] = THEME_PRESETS[currentTheme].kpText;
+    }
+
+    function showImportedOutput() {
+        document.getElementById('output').style.display = 'block';
+        document.getElementById('action-area').style.display = 'flex';
+        document.getElementById('view-mode-btn').style.display = 'block';
+    }
+
+    function confirmBeforeReplacingImport() {
+        if (!Array.isArray(rawLogData) || rawLogData.length === 0) return true;
+        return confirm('目前已有團錄資料，重新匯入會覆蓋現有內容。確定要繼續嗎？');
+    }
+
+    function finishDiscordImport(imports) {
+        const allItems = imports.flatMap(item => item.items);
+        rawLogData = sortLogItems(allItems);
+
+        const firstGuildName = imports.map(item => item.meta.guildName).find(Boolean);
+        if (!document.getElementById('scenario-name').value.trim() && firstGuildName) {
+            document.getElementById('scenario-name').value = firstGuildName;
+        }
+
+        const globalShowTimeEl = document.getElementById('global-show-time');
+        globalShowTime = true;
+        if (globalShowTimeEl) globalShowTimeEl.checked = true;
+
+        activeChannelTab = rawLogData[0]?.ch || '[main]';
+        console.log('Discord imports:', imports.map(item => item.meta));
+        if (console.table) console.table(imports.map(item => item.meta));
+        showImportedOutput();
+        liveUpdateHeader();
+        renderConfigPanel();
+        liveRenderLog();
+        saveToLocal();
+    }
+
+    async function importDiscordHtmlFiles(files) {
+        resetImportedLogState();
+        const usedChannelKeys = new Set(Object.keys(channelConfigs));
+        const imports = [];
+
+        for (const file of files) {
+            const htmlText = await readHtmlFileAsText(file);
+            imports.push(parseDiscordHtmlToImport(htmlText, file.name, usedChannelKeys, { htmlFile: file }));
+        }
+
+        finishDiscordImport(imports);
+    }
+
+    async function importDiscordFolderFiles(files) {
+        const allFiles = Array.from(files || []);
+        const htmlFiles = allFiles.filter(file => /\.html?$/i.test(file.name || file.webkitRelativePath || ''));
+        const assetMap = buildDiscordAssetMap(allFiles);
+        console.log('Discord folder import assets:', assetMap.size);
+
+        const discordHtmlFiles = [];
+        for (const file of htmlFiles) {
+            const htmlText = await readHtmlFileAsText(file);
+            if (detectLogSource(htmlText) === 'discord') {
+                discordHtmlFiles.push({ file, htmlText });
+            }
+        }
+
+        if (!discordHtmlFiles.length) {
+            alert('未偵測到 DiscordChatExporter HTML。');
+            return;
+        }
+
+        resetImportedLogState();
+        const usedChannelKeys = new Set(Object.keys(channelConfigs));
+        const imports = discordHtmlFiles.map(({ file, htmlText }) =>
+            parseDiscordHtmlToImport(htmlText, file.name, usedChannelKeys, {
+                htmlFile: file,
+                assetMap
+            })
+        );
+
+        finishDiscordImport(imports);
+    }
+
+    function importCcfOliaHtmlText(htmlText) {
+        resetImportedLogState();
+        const currentTheme = document.body.getAttribute('data-theme') || 'light';
+        const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+
+        doc.querySelectorAll('p').forEach(p => {
+            const spans = p.querySelectorAll('span');
+            if (spans.length >= 3) {
+                const ch = spans[0].innerText.trim();
+                let name = spans[1].innerText.trim();
+                if (ch && !channelConfigs[ch]) {
+                    let finalLabel = ch.replace(/[\[\]]/g, '');
+                    if (finalLabel.toLowerCase() === 'info') finalLabel = '?';
+                    else if (finalLabel.toLowerCase() === 'other') finalLabel = '??';
+                    channelConfigs[ch] = { label: finalLabel, bgColor: (ch === '[info]') ? THEME_PRESETS[currentTheme].infoBg : (ch === '[other]') ? THEME_PRESETS[currentTheme].otherBg : THEME_PRESETS[currentTheme].customBg, checked: (ch !== '[other]') };
+                }
+                const rawHtml = spans[2].innerHTML || '';
+                let normalizedText = normalizeImportedText(rawHtml);
+
+                if (name === "system") {
+                    const systemSpeaker = extractSystemSpeaker(normalizedText);
+                    if (systemSpeaker) {
+                        name = systemSpeaker.name;
+                        normalizedText = systemSpeaker.text;
+                    }
+                }
+
+                const detectedColor = rgbToHex(p.style.color) || "#4a4a4a";
+                if (name && name !== "system") {
+                    if (!detectedCharColorMap[name]) detectedCharColorMap[name] = detectedColor;
+                    if (!charColorMap[name]) charColorMap[name] = detectedColor;
+                    if (charNameVisibilityMap[name] === undefined) charNameVisibilityMap[name] = true;
+                }
+
+                rawLogData.push({
+                    ch,
+                    name,
+                    html: normalizedText,
+                    detectedColor,
+                    showInTOC: false,
+                    tocTitle: ''
+                });
+            }
+        });
+
+        renderConfigPanel();
+        saveToLocal();
+    }
+
+    document.getElementById('html-file').addEventListener('change', async e => {
         const file = e.target.files[0]; if (!file) return;
+        const files = Array.from(e.target.files || []);
+        if (!confirmBeforeReplacingImport()) {
+            e.target.value = '';
+            return;
+        }
+        try {
+            const loadedFiles = [];
+            for (const selectedFile of files) {
+                const htmlText = await readHtmlFileAsText(selectedFile);
+                loadedFiles.push({
+                    file: selectedFile,
+                    htmlText,
+                    source: detectLogSource(htmlText)
+                });
+            }
+
+            const hasDiscord = loadedFiles.some(item => item.source === 'discord');
+            const hasCcfOlia = loadedFiles.some(item => item.source !== 'discord');
+
+            if (hasDiscord && hasCcfOlia) {
+                alert('請不要混合上傳 Discord 與 CCFOLIA HTML，請分開匯入。');
+                e.target.value = '';
+                return;
+            }
+
+            if (hasDiscord) {
+                await importDiscordHtmlFiles(files);
+                e.target.value = '';
+                return;
+            }
+
+            if (files.length > 1) {
+                alert('目前不支援多個 CCFOLIA HTML 合併，將只匯入第一個檔案。');
+            }
+
+            importCcfOliaHtmlText(loadedFiles[0].htmlText);
+        } catch (err) {
+            console.error('HTML import failed:', err);
+            alert('HTML 匯入失敗，請檢查檔案格式。');
+        }
+
+        e.target.value = '';
+        return;
         const reader = new FileReader();
         reader.onload = ev => {
-            const doc = new DOMParser().parseFromString(ev.target.result, 'text/html');
-            charColorMap = {}; detectedCharColorMap = {}; manualCharColorMap = {}; channelConfigs = {}; rawLogData = [];
+            const htmlText = ev.target.result;
+            const source = detectLogSource(htmlText);
+            charColorMap = {}; detectedCharColorMap = {}; manualCharColorMap = {}; charNameVisibilityMap = {}; channelConfigs = {}; rawLogData = [];
             const currentTheme = document.body.getAttribute('data-theme') || 'light';
             charColorMap["KP（空白）"] = THEME_PRESETS[currentTheme].kpText;
+
+            if (source === 'discord') {
+                rawLogData = sortLogItems(parseDiscordHtmlToRawLogData(htmlText));
+                const discordMeta = parseDiscordHtmlToRawLogData.discordMeta || {};
+                if (!document.getElementById('scenario-name').value.trim() && discordMeta.guildName) {
+                    document.getElementById('scenario-name').value = discordMeta.guildName;
+                }
+
+                const globalShowTimeEl = document.getElementById('global-show-time');
+                globalShowTime = true;
+                if (globalShowTimeEl) globalShowTimeEl.checked = true;
+
+                activeChannelTab = rawLogData[0]?.ch || '[main]';
+                renderConfigPanel();
+                document.getElementById('output').style.display = 'block';
+                document.getElementById('action-area').style.display = 'flex';
+                document.getElementById('view-mode-btn').style.display = 'block';
+                liveUpdateHeader();
+                liveRenderLog();
+                saveToLocal();
+                return;
+            }
+
+            const doc = new DOMParser().parseFromString(htmlText, 'text/html');
             doc.querySelectorAll('p').forEach(p => {
                 const spans = p.querySelectorAll('span');
                 if (spans.length >= 3) {
@@ -2194,6 +3235,7 @@
                     if (name && name !== "system") {
                         if (!detectedCharColorMap[name]) detectedCharColorMap[name] = detectedColor;
                         if (!charColorMap[name]) charColorMap[name] = detectedColor;
+                        if (charNameVisibilityMap[name] === undefined) charNameVisibilityMap[name] = true;
                     }
 
                     rawLogData.push({
@@ -2209,6 +3251,24 @@
             renderConfigPanel(); saveToLocal();
         };
         reader.readAsText(file, "UTF-8");
+    });
+
+    document.getElementById('discord-folder-input')?.addEventListener('change', async e => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+        if (!confirmBeforeReplacingImport()) {
+            e.target.value = '';
+            return;
+        }
+
+        try {
+            await importDiscordFolderFiles(files);
+        } catch (err) {
+            console.error('Discord folder import failed:', err);
+            alert('Discord 資料夾匯入失敗，請檢查資料夾內容。');
+        } finally {
+            e.target.value = '';
+        }
     });
 
     function renderConfigPanel() {
@@ -2242,16 +3302,25 @@
         const charContainer = document.getElementById('character-colors'); charContainer.innerHTML = '';
         Object.keys(charColorMap).forEach(name => {
             const color = charColorMap[name];
+            if (charNameVisibilityMap[name] === undefined) charNameVisibilityMap[name] = true;
             const div = document.createElement('div');
             div.className = 'channel-item';
             div.innerHTML = `
-                <span style="flex:1; font-weight:bold; color: ${color}">${name}</span>
+                <label style="display:flex; align-items:center; gap:8px; flex:1; min-width:0; margin:0; cursor:pointer;">
+                    <input type="checkbox" ${charNameVisibilityMap[name] !== false ? 'checked' : ''} onchange="setCharNameVisible('${name}', this.checked)">
+                    <span style="font-weight:bold; color: ${color}; overflow:hidden; text-overflow:ellipsis;">${name}</span>
+                </label>
                 <div class="color-pill">
                     <input type="color" id="cp-${name}" value="${color}" oninput="syncCharColor('${name}', this.value, 'picker', this);">
                     <input type="text" class="hex-field" id="ct-${name}" value="${color}" oninput="syncCharColor('${name}', this.value, 'text', this);">
                 </div>`;
             charContainer.appendChild(div);
         });
+    }
+    function setCharNameVisible(name, checked) {
+        charNameVisibilityMap[name] = checked;
+        liveRenderLog();
+        saveToLocal();
     }
     function updateChannelColor(ch, key, val, source, el) { 
         channelConfigs[ch][key] = val; 
