@@ -16,13 +16,104 @@
             --edit-color: #e67e22;
         }
 
+        [data-theme="light"] {
+            --bg-color: #f4f1ea;
+            --container-bg: #ffffff;
+            --primary-color: #a67c52;
+            --secondary-color: #8fa4b3;
+            --text-color: #4a4a4a;
+            --border-color: #dcdcdc;
+            --bar-bg: #f4f1ea;
+        }
+
         [data-theme="dark"] {
             --bg-color: #121212;
             --container-bg: #1e1e1e;
             --primary-color: #c9ad93;
+            --secondary-color: #8fa4b3;
             --text-color: #d1d1d1;
             --border-color: #333333;
             --bar-bg: #121212;
+        }
+
+        [data-theme="blue"] {
+            --bg-color: #F8F9FC;
+            --container-bg: #FFFFFF;
+            --primary-color: #5B67A2;
+            --secondary-color: #7B86AA;
+            --text-color: #545051;
+            --border-color: #D8DDF2;
+            --bar-bg: #EEF1FB;
+        }
+
+        [data-theme="brown"] {
+            --bg-color: #FCFAF1;
+            --container-bg: #FFFDF7;
+            --primary-color: #9A6654;
+            --secondary-color: #C9B0A8;
+            --text-color: #5F403B;
+            --border-color: #E4D8CF;
+            --bar-bg: #F4EDE4;
+        }
+
+        [data-theme="gray"] {
+            --bg-color: #F2F2F2;
+            --container-bg: #FFFFFF;
+            --primary-color: #686868;
+            --secondary-color: #917C6E;
+            --text-color: #47362B;
+            --border-color: #DDDDDD;
+            --bar-bg: #ECECEC;
+        }
+
+        [data-theme="pastel"] {
+            --bg-color: #FCFDFD;
+            --container-bg: #FFFFFF;
+            --primary-color: #767892;
+            --secondary-color: #DFACB8;
+            --text-color: #4D5058;
+            --border-color: #E7D5E3;
+            --bar-bg: #F8EEF3;
+        }
+
+        [data-theme="green"] {
+            --bg-color: #FCFEF9;
+            --container-bg: #FFFFFF;
+            --primary-color: #81A76A;
+            --secondary-color: #283B51;
+            --text-color: #283B51;
+            --border-color: #DDE9CB;
+            --bar-bg: #F0F8DE;
+        }
+
+        [data-theme="softpink"] {
+            --bg-color: #FEFCFA;
+            --container-bg: #FFFFFF;
+            --primary-color: #928C95;
+            --secondary-color: #F0BDBD;
+            --text-color: #4D5058;
+            --border-color: #E6D8D6;
+            --bar-bg: #F9EDE9;
+        }
+
+        [data-theme="red"] {
+            --bg-color: #F7EDEE;
+            --container-bg: #FFF9F9;
+            --primary-color: #9D1919;
+            --secondary-color: #EAAAAD;
+            --text-color: #54090C;
+            --border-color: #F3BEBE;
+            --bar-bg: #FBE4E5;
+        }
+
+        [data-theme="contrast"] {
+            --bg-color: #FFFFFF;
+            --container-bg: #FFFFFF;
+            --primary-color: #155B92;
+            --secondary-color: #CC4635;
+            --text-color: #2C2E3E;
+            --border-color: #E8D2C3;
+            --bar-bg: #F9DBC4;
         }
 
         @media print {
@@ -119,6 +210,7 @@
             padding-bottom: 96px;
         }
         .theme-switch { position: fixed; top: 20px; right: 20px; padding: 10px 18px; border-radius: 30px; border: 1.5px solid var(--primary-color); background: var(--container-bg); color: var(--primary-color); cursor: pointer; font-weight: bold; z-index: 120; }
+        .theme-select { min-width: 136px; appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--primary-color) 50%), linear-gradient(135deg, var(--primary-color) 50%, transparent 50%); background-position: calc(100% - 17px) 50%, calc(100% - 11px) 50%; background-size: 6px 6px, 6px 6px; background-repeat: no-repeat; padding-right: 34px; }
         .view-mode-switch { position: fixed; top: 20px; right: 180px; padding: 10px 18px; border-radius: 30px; border: 1.5px solid var(--primary-color); background: var(--container-bg); color: var(--primary-color); cursor: pointer; font-weight: bold; z-index: 120; }
 
         .mode-switcher { display: inline-flex; background: #eeeae3; padding: 5px; border-radius: 50px; border: 1px solid var(--border-color); margin-right: 20px; }
@@ -199,8 +291,7 @@
 
         h1.tool-title { text-align: center; color: var(--primary-color); margin-bottom: 45px; font-size: 32px; letter-spacing: 2px; font-weight: 900; }
         label { display: block; font-weight: bold; margin-bottom: 12px; color: var(--primary-color); font-size: 16px; }
-        input[type="text"], textarea { width: 100%; padding: 15px 20px; border: 1.5px solid var(--border-color); border-radius: 12px; box-sizing: border-box; background-color: #fafafa; color: #4a4a4a; margin-bottom: 15px; font-size: 15px; transition: 0.3s; }
-        [data-theme="dark"] input[type="text"], [data-theme="dark"] textarea { background-color: #2a2a2a; color: #eee; border-color: #444; }
+        input[type="text"], textarea { width: 100%; padding: 15px 20px; border: 1.5px solid var(--border-color); border-radius: 12px; box-sizing: border-box; background-color: color-mix(in srgb, var(--container-bg) 92%, var(--bg-color)); color: var(--text-color); margin-bottom: 15px; font-size: 15px; transition: 0.3s; }
 
         .row { display: flex; gap: 40px; margin-bottom: 25px; align-items: flex-start; width: 100%; }
         .col-half { flex: 1; min-width: 0; }
@@ -226,9 +317,7 @@
             margin-top: 30px;
         }
 
-        [data-theme="dark"] .color-pill {
-            background: #2a2a2a;
-        }
+        [data-theme="dark"] .color-pill { background: #2a2a2a; }
         input[type="color"] { width: 22px; height: 22px; border: none; cursor: pointer; background: none; padding: 0; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
         input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
         .hex-field { border: none !important; background: transparent !important; margin-bottom: 0 !important; padding: 0 !important; width: 75px !important; font-family: monospace; font-size: 14px !important; color: inherit !important; font-weight: bold; }
@@ -624,15 +713,10 @@
             display: block;
             margin: 8px 0;
             padding-left: 12px;
-            border-left: 3px solid #b8b8b8;
-            color: #7a7a7a;
+            border-left: 3px solid var(--border-color);
+            color: color-mix(in srgb, var(--text-color) 72%, transparent);
             font-size: 0.95em;
             line-height: 1.8;
-        }
-
-        [data-theme="dark"] .md-quote {
-            border-left-color: #666;
-            color: #a0a0a0;
         }
 
         .md-inline-code {
@@ -721,10 +805,6 @@
         .mini-action-btn:hover {
             filter: brightness(0.95);
         }
-        [data-theme="dark"] .mini-action-btn {
-            background: #6e7a68;
-        }
-
         .toc-panel {
             position: fixed;
             left: 0;
@@ -901,6 +981,13 @@
         }
 
         @supports not (background: color-mix(in srgb, white, black)) {
+            input[type="text"], textarea {
+                background-color: var(--container-bg);
+            }
+            .md-quote {
+                color: var(--text-color);
+                opacity: 0.72;
+            }
             .item-meta-editor {
                 background: rgba(166, 124, 82, 0.04);
             }
@@ -1059,7 +1146,18 @@
 </head>
 <body data-theme="light" data-mode="view">
 
-<button class="theme-switch no-print" id="theme-btn" onclick="toggleTheme()">切換暗色模式</button>
+<select class="theme-switch theme-select no-print" id="theme-select" onchange="setTheme(this.value)" title="選擇色調">
+    <option value="light">暖米白</option>
+    <option value="dark">炭黑</option>
+    <option value="blue">柔靛藍</option>
+    <option value="brown">陶土棕</option>
+    <option value="gray">岩灰</option>
+    <option value="pastel">霧紫灰</option>
+    <option value="green">鼠尾草綠</option>
+    <option value="softpink">玫瑰灰</option>
+    <option value="red">酒紅</option>
+    <option value="contrast">深海藍</option>
+</select>
 <button class="view-mode-switch no-print" id="view-mode-btn" onclick="toggleLogViewMode()" style="display:none;">切換分頻道模式</button>
 
 
@@ -1170,6 +1268,12 @@
 </div>
 
 <script>
+    const STORAGE_KEY = 'coc_trpg_log_tool_settings_v1';
+    const LEGACY_STORAGE_KEY = 'trpg_log_v44';
+    const DB_NAME = 'coc_trpg_log_tool_db';
+    const DB_VERSION = 1;
+    const LOG_STORE_NAME = 'logs';
+
     let charColorMap = {};
     let detectedCharColorMap = {};
     let manualCharColorMap = {};
@@ -1204,6 +1308,12 @@
     let pointerRenderQueued = false;
     let colorRenderQueued = false;
     let colorSaveTimer = null;
+    let rawLogSaveTimer = null;
+    let rawLogDirty = false;
+    let introImageSaveTimer = null;
+    let introImageDirty = false;
+    let localStorageQuotaWarned = false;
+    let indexedDBQuotaWarned = false;
 
     let tocEditIndex = null;
 
@@ -1284,7 +1394,7 @@
         }
 
         rerenderKeepViewport();
-        saveToLocal();
+        saveToLocal({ rawLogChanged: true });
     }
 }
 
@@ -1292,10 +1402,20 @@
 
     const THEME_PRESETS = {
         light: { kpText: "#4a4a4a", infoBg: "#f9f9f9", otherBg: "#cfdbe3", customBg: "#f9f9f9" },
-        dark: { kpText: "#d1d1d1", infoBg: "#2a2a2a", otherBg: "#1e2a33", customBg: "#1e1e1e" }
+        dark: { kpText: "#d1d1d1", infoBg: "#2a2a2a", otherBg: "#1e2a33", customBg: "#1e1e1e" },
+        blue: { kpText: "#545051", infoBg: "#F2F4FB", otherBg: "#E7ECFA", customBg: "#FBFCFF" },
+        brown: { kpText: "#5F403B", infoBg: "#F7F1E7", otherBg: "#EADDD8", customBg: "#FFFDF7" },
+        gray: { kpText: "#47362B", infoBg: "#F5F5F5", otherBg: "#E8E4E1", customBg: "#FFFFFF" },
+        pastel: { kpText: "#4D5058", infoBg: "#F7F0F6", otherBg: "#FDE8EC", customBg: "#FFFFFF" },
+        green: { kpText: "#283B51", infoBg: "#F1F8E1", otherBg: "#E7F1DD", customBg: "#FFFFFF" },
+        softpink: { kpText: "#4D5058", infoBg: "#FAEEE9", otherBg: "#F4D7D7", customBg: "#FFFFFF" },
+        red: { kpText: "#54090C", infoBg: "#FBE7E8", otherBg: "#F4D1D2", customBg: "#FFF9F9" },
+        contrast: { kpText: "#2C2E3E", infoBg: "#F9DBC4", otherBg: "#F4E0D2", customBg: "#FFFFFF" }
     };
 
-    window.onload = function() { loadFromLocal(); };
+    window.onload = async function() {
+        await loadFromLocal();
+    };
 
     // 新增：監聽 Ctrl+V 貼上圖片功能
     window.addEventListener('paste', e => {
@@ -1308,7 +1428,7 @@
                 // 將圖片預覽顯示在對應區塊
                 document.getElementById('image-preview').innerHTML = `<img src="${ev.target.result}" style="max-width:100%; max-height:100%; border-radius:12px;">`;
                 // 同步儲存到本地空間
-                saveToLocal();
+                saveToLocal({ introImageChanged: true });
             };
             reader.readAsDataURL(file);
         }
@@ -1621,8 +1741,147 @@
             .replace(/>/g, '&gt;');
     }
 
-    function saveToLocal() {
-        const data = {
+    function openLogDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onupgradeneeded = event => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(LOG_STORE_NAME)) {
+                    db.createObjectStore(LOG_STORE_NAME, { keyPath: 'id' });
+                }
+            };
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function saveRawLogDataToIndexedDB(data) {
+        const db = await openLogDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(LOG_STORE_NAME, 'readwrite');
+            tx.objectStore(LOG_STORE_NAME).put({
+                id: 'current',
+                rawLogData: Array.isArray(data) ? data : [],
+                updatedAt: Date.now()
+            });
+            tx.oncomplete = () => { db.close(); resolve(); };
+            tx.onerror = () => { const error = tx.error; db.close(); reject(error); };
+        });
+    }
+
+    async function loadRawLogDataFromIndexedDB() {
+        const db = await openLogDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(LOG_STORE_NAME, 'readonly');
+            const request = tx.objectStore(LOG_STORE_NAME).get('current');
+            request.onsuccess = () => { db.close(); resolve(request.result?.rawLogData || []); };
+            request.onerror = () => { const error = request.error || tx.error; db.close(); reject(error); };
+        });
+    }
+
+    async function clearRawLogDataFromIndexedDB() {
+        const db = await openLogDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(LOG_STORE_NAME, 'readwrite');
+            tx.objectStore(LOG_STORE_NAME).delete('current');
+            tx.oncomplete = () => { db.close(); resolve(); };
+            tx.onerror = () => { const error = tx.error; db.close(); reject(error); };
+        });
+    }
+
+    async function saveIntroImageToIndexedDB(imgSrc) {
+        const db = await openLogDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(LOG_STORE_NAME, 'readwrite');
+            const store = tx.objectStore(LOG_STORE_NAME);
+            if (imgSrc) {
+                store.put({ id: 'introImage', imgSrc, updatedAt: Date.now() });
+            } else {
+                store.delete('introImage');
+            }
+            tx.oncomplete = () => { db.close(); resolve(); };
+            tx.onerror = () => { const error = tx.error; db.close(); reject(error); };
+        });
+    }
+
+    async function loadIntroImageFromIndexedDB() {
+        const db = await openLogDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(LOG_STORE_NAME, 'readonly');
+            const request = tx.objectStore(LOG_STORE_NAME).get('introImage');
+            request.onsuccess = () => { db.close(); resolve(request.result?.imgSrc || ''); };
+            request.onerror = () => { const error = request.error || tx.error; db.close(); reject(error); };
+        });
+    }
+
+    async function clearIntroImageFromIndexedDB() {
+        return saveIntroImageToIndexedDB('');
+    }
+
+    function markRawLogDirty() {
+        rawLogDirty = true;
+    }
+
+    function markIntroImageDirty() {
+        introImageDirty = true;
+    }
+
+    function queueRawLogSave() {
+        if (!rawLogDirty) return;
+        clearTimeout(rawLogSaveTimer);
+        rawLogSaveTimer = setTimeout(async () => {
+            if (!rawLogDirty) return;
+            rawLogDirty = false;
+            try {
+                await saveRawLogDataToIndexedDB(rawLogData);
+            } catch (err) {
+                console.error('IndexedDB rawLogData save failed:', err);
+                if (!indexedDBQuotaWarned) {
+                    indexedDBQuotaWarned = true;
+                    alert(
+                        '大型團錄資料無法寫入瀏覽器資料庫。\n\n' +
+                        '目前畫面上的資料仍可使用，但重新整理後可能不會保留。\n' +
+                        '建議先下載 HTML 或儲存為 PDF。'
+                    );
+                }
+            }
+        }, 800);
+    }
+
+    function getCurrentIntroImageSrc() {
+        const src = document.getElementById('image-preview').querySelector('img')?.src || '';
+        return src;
+    }
+
+    function queueIntroImageSave() {
+        if (!introImageDirty) return;
+        clearTimeout(introImageSaveTimer);
+        introImageSaveTimer = setTimeout(async () => {
+            if (!introImageDirty) return;
+            introImageDirty = false;
+            try {
+                await saveIntroImageToIndexedDB(getCurrentIntroImageSrc());
+            } catch (err) {
+                console.error('IndexedDB intro image save failed:', err);
+                if (!indexedDBQuotaWarned) {
+                    indexedDBQuotaWarned = true;
+                    alert(
+                        '大型團錄資料無法寫入瀏覽器資料庫。\n\n' +
+                        '目前畫面上的資料仍可使用，但重新整理後可能不會保留。\n' +
+                        '建議先下載 HTML 或儲存為 PDF。'
+                    );
+                }
+            }
+        }, 800);
+    }
+
+    function getPersistableImageSrc() {
+        const src = getCurrentIntroImageSrc();
+        return src.startsWith('data:image/') ? '' : src;
+    }
+
+    function getSettingsData() {
+        return {
             scenarioName: document.getElementById('scenario-name').value,
             introText: document.getElementById('intro-text').value,
             kpName: document.getElementById('kp-name').value,
@@ -1636,23 +1895,54 @@
             globalShowName: document.getElementById('global-show-name').checked,
             globalShowTime: globalTimeDisplayMode !== 'none',
             globalTimeDisplayMode,
-            imgSrc: document.getElementById('image-preview').querySelector('img')?.src || '',
-            charColorMap, detectedCharColorMap, manualCharColorMap, charNameVisibilityMap, channelConfigs, discordOtherChannels, rawLogData,
+            imgSrc: getPersistableImageSrc(),
+            charColorMap, detectedCharColorMap, manualCharColorMap, charNameVisibilityMap, channelConfigs, discordOtherChannels,
             isOutputVisible: document.getElementById('output').style.display === 'block'
         };
-        localStorage.setItem('trpg_log_v44', JSON.stringify(data));
     }
 
-    function loadFromLocal() {
-        const saved = localStorage.getItem('trpg_log_v44');
+    function saveToLocal(options = {}) {
+        if (options.rawLogChanged) markRawLogDirty();
+        if (options.introImageChanged) markIntroImageDirty();
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(getSettingsData()));
+        } catch (err) {
+            console.error('localStorage settings save failed:', err);
+            if (!localStorageQuotaWarned) {
+                localStorageQuotaWarned = true;
+                alert(
+                    '瀏覽器暫存空間不足，部分設定可能無法自動保存。\n\n' +
+                    '目前畫面上的資料仍可使用，建議先下載 HTML 或儲存為 PDF。'
+                );
+            }
+        }
+        queueRawLogSave();
+        queueIntroImageSave();
+    }
+
+    async function loadFromLocal() {
+        let saved = localStorage.getItem(STORAGE_KEY);
+        let isLegacyData = false;
+        if (!saved) {
+            saved = localStorage.getItem(LEGACY_STORAGE_KEY);
+            isLegacyData = !!saved;
+        }
         if (!saved) { addHORow(); return; }
-        const data = JSON.parse(saved);
+
+        let data = {};
+        try {
+            data = JSON.parse(saved);
+        } catch (err) {
+            console.error('Saved settings parse failed:', err);
+            addHORow();
+            return;
+        }
         document.getElementById('scenario-name').value = data.scenarioName || '';
         document.getElementById('intro-text').value = data.introText || '';
         document.getElementById('kp-name').value = data.kpName || '';
         hoList = data.hoList || [];
         renderHOEditor();
-        document.body.setAttribute('data-theme', data.theme || 'light');
+        document.body.setAttribute('data-theme', getValidTheme(data.theme));
         logViewMode = data.logViewMode || 'mixed';
         activeChannelTab = data.activeChannelTab || '[main]';
         channelOrder = Array.isArray(data.channelOrder) ? data.channelOrder : [];
@@ -1663,26 +1953,61 @@
         globalShowTime = globalTimeDisplayMode !== 'none';
         const globalShowTimeEl = document.getElementById('global-show-time');
         if (globalShowTimeEl) globalShowTimeEl.checked = globalShowTime;
-        if (data.imgSrc) document.getElementById('image-preview').innerHTML = `<img src="${data.imgSrc}" style="max-width:100%; max-height:100%; border-radius:12px;">`;
         charColorMap = data.charColorMap || {};
         detectedCharColorMap = data.detectedCharColorMap || {};
         manualCharColorMap = data.manualCharColorMap || {};
         charNameVisibilityMap = data.charNameVisibilityMap || {};
         channelConfigs = data.channelConfigs || {};
         discordOtherChannels = Array.isArray(data.discordOtherChannels) ? data.discordOtherChannels : [];
-        if (data.rawLogData) {
-            rawLogData = data.rawLogData;
+
+        let loadedIntroImageSrc = data.imgSrc || '';
+        if (data.imgSrc?.startsWith?.('data:image/')) {
+            try {
+                await saveIntroImageToIndexedDB(data.imgSrc);
+            } catch (err) {
+                console.error('Legacy intro image migration failed:', err);
+            }
+        } else {
+            try {
+                loadedIntroImageSrc = await loadIntroImageFromIndexedDB() || loadedIntroImageSrc;
+            } catch (err) {
+                console.error('IndexedDB intro image load failed:', err);
+            }
+        }
+        if (loadedIntroImageSrc) {
+            document.getElementById('image-preview').innerHTML = `<img src="${loadedIntroImageSrc}" style="max-width:100%; max-height:100%; border-radius:12px;">`;
+        }
+
+        let loadedRawLogData = [];
+        if (isLegacyData && Array.isArray(data.rawLogData)) {
+            loadedRawLogData = data.rawLogData;
+            try {
+                await saveRawLogDataToIndexedDB(loadedRawLogData);
+                saveToLocal();
+            } catch (err) {
+                console.error('Legacy rawLogData migration failed:', err);
+            }
+        } else {
+            try {
+                loadedRawLogData = await loadRawLogDataFromIndexedDB();
+            } catch (err) {
+                console.error('IndexedDB rawLogData load failed:', err);
+            }
+        }
+
+        if (Array.isArray(loadedRawLogData) && loadedRawLogData.length) {
+            rawLogData = loadedRawLogData;
             renderConfigPanel();
             if (data.isOutputVisible) {
                 document.getElementById('output').style.display = 'block';
                 document.getElementById('action-area').style.display = 'flex';
                 document.getElementById('view-mode-btn').style.display = 'block';
-                switchMode(data.mode || 'view');
-                liveUpdateHeader();
-                liveRenderLog();
             }
+            switchMode(data.mode || 'view');
+            liveUpdateHeader();
+            liveRenderLog();
         }
-        document.getElementById('theme-btn').innerText = data.theme === 'dark' ? '切換亮色模式' : '切換暗色模式';
+        updateThemeSelect();
     }
 
     function addHORow() {
@@ -2218,7 +2543,7 @@
         clearFloatingBoundaryHint();
 
         rerenderKeepViewport();
-        saveToLocal();
+        saveToLocal({ rawLogChanged: true });
     }
     function clearFloatingInsertLine() {
         hoverInsertIndex = null;
@@ -2293,16 +2618,30 @@
         renderFloatingInsertLine();
     }
 
-    function toggleTheme() { 
-        const isDark = document.body.getAttribute('data-theme') === 'dark';
-        const newTheme = isDark ? 'light' : 'dark';
+    function getValidTheme(theme) {
+        return THEME_PRESETS[theme] ? theme : 'light';
+    }
+
+    function updateThemeSelect() {
+        const select = document.getElementById('theme-select');
+        if (select) select.value = getValidTheme(document.body.getAttribute('data-theme'));
+    }
+
+    function setTheme(theme) {
+        const newTheme = getValidTheme(theme);
         document.body.setAttribute('data-theme', newTheme);
-        document.getElementById('theme-btn').innerText = newTheme === 'light' ? '切換暗色模式' : '切換亮色模式';
-        updateColorsToTheme(newTheme); saveToLocal();
+        updateThemeSelect();
+        updateColorsToTheme(newTheme);
+        saveToLocal();
+    }
+
+    function toggleTheme() {
+        const currentTheme = getValidTheme(document.body.getAttribute('data-theme'));
+        setTheme(currentTheme === 'dark' ? 'light' : 'dark');
     }
 
     function updateColorsToTheme(theme) {
-        const preset = THEME_PRESETS[theme];
+        const preset = THEME_PRESETS[getValidTheme(theme)];
         const defaultTextColor = getDefaultLogTextColor(theme);
         charColorMap["KP（空白）"] = preset.kpText;
         charColorMap["KP嚗征?踝?"] = preset.kpText;
@@ -2320,7 +2659,7 @@
     }
 
     function getDefaultLogTextColor(theme = document.body.getAttribute('data-theme')) {
-        return theme === 'dark' ? '#d1d1d1' : '#4a4a4a';
+        return THEME_PRESETS[getValidTheme(theme)]?.kpText || '#4a4a4a';
     }
 
     function makeEditable(index) {
@@ -2635,7 +2974,7 @@
         
         item.align = (item.align === "center") ? "left" : "center";
         
-        saveToLocal();
+        saveToLocal({ rawLogChanged: true });
         rerenderKeepViewport();
     }
 
@@ -2648,6 +2987,7 @@
         }
 
         const nextName = value.trim();
+        const didChange = item.name !== nextName;
         item.name = nextName;
 
         if (nextName && nextName !== 'system' && !charColorMap[nextName]) {
@@ -2658,7 +2998,7 @@
         }
 
         liveRenderLog();
-        saveToLocal();
+        saveToLocal({ rawLogChanged: didChange });
     }
 
     function openSpeakerDropdown(index) {
@@ -2697,6 +3037,7 @@
             commitEditing({ rerender: false });
         }
 
+        const didChange = item.ch !== value || item.splitBefore !== true;
         item.ch = value;
         item.splitBefore = true;
 
@@ -2705,7 +3046,7 @@
         }
 
         liveRenderLog();
-        saveToLocal();
+        saveToLocal({ rawLogChanged: didChange });
     }
 
     function checkMerging() {
@@ -2958,7 +3299,7 @@
     }
 
     function rgbToHex(rgb) { if (!rgb || !rgb.startsWith('rgb')) return rgb; const res = rgb.match(/\d+/g).slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')); return `#${res.join('')}`; }
-    function handleFileSelect(i) { if (i.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:100%; border-radius:12px;">`; if(document.getElementById('output').style.display === 'block') liveUpdateHeader(); saveToLocal(); }; r.readAsDataURL(i.files[0]); } }
+    function handleFileSelect(i) { if (i.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:100%; border-radius:12px;">`; if(document.getElementById('output').style.display === 'block') liveUpdateHeader(); saveToLocal({ introImageChanged: true }); }; r.readAsDataURL(i.files[0]); } }
 
     function detectLogSource(htmlText) {
         const text = String(htmlText || '');
@@ -3167,7 +3508,7 @@
         const ch = options.ch || `[dc:${channelName}]`;
         parseDiscordHtmlToRawLogData.discordMeta = { ...meta, channelName, ch };
 
-        const currentTheme = document.body.getAttribute('data-theme') || 'light';
+        const currentTheme = getValidTheme(document.body.getAttribute('data-theme'));
         channelConfigs[ch] = {
             checked: true,
             label: channelName,
@@ -3338,7 +3679,7 @@
         channelOrder = [];
         discordOtherChannels = [];
         rawLogData = [];
-        const currentTheme = document.body.getAttribute('data-theme') || 'light';
+        const currentTheme = getValidTheme(document.body.getAttribute('data-theme'));
         charColorMap["KP（空白）"] = THEME_PRESETS[currentTheme].kpText;
     }
 
@@ -3375,7 +3716,7 @@
         liveUpdateHeader();
         renderConfigPanel();
         liveRenderLog();
-        saveToLocal();
+        saveToLocal({ rawLogChanged: true });
     }
 
     async function importDiscordHtmlFiles(files) {
@@ -3424,7 +3765,7 @@
 
     function importCcfOliaHtmlText(htmlText) {
         resetImportedLogState();
-        const currentTheme = document.body.getAttribute('data-theme') || 'light';
+        const currentTheme = getValidTheme(document.body.getAttribute('data-theme'));
         const doc = new DOMParser().parseFromString(htmlText, 'text/html');
 
         doc.querySelectorAll('p').forEach(p => {
@@ -3468,7 +3809,7 @@
         });
 
         renderConfigPanel();
-        saveToLocal();
+        saveToLocal({ rawLogChanged: true });
     }
 
     document.getElementById('html-file').addEventListener('change', async e => {
@@ -3521,7 +3862,7 @@
             const htmlText = ev.target.result;
             const source = detectLogSource(htmlText);
             charColorMap = {}; detectedCharColorMap = {}; manualCharColorMap = {}; charNameVisibilityMap = {}; channelConfigs = {}; channelOrder = []; discordOtherChannels = []; rawLogData = [];
-            const currentTheme = document.body.getAttribute('data-theme') || 'light';
+            const currentTheme = getValidTheme(document.body.getAttribute('data-theme'));
             charColorMap["KP（空白）"] = THEME_PRESETS[currentTheme].kpText;
 
             if (source === 'discord') {
@@ -3544,7 +3885,7 @@
                 document.getElementById('view-mode-btn').style.display = 'block';
                 liveUpdateHeader();
                 liveRenderLog();
-                saveToLocal();
+                saveToLocal({ rawLogChanged: true });
                 return;
             }
 
@@ -3588,7 +3929,7 @@
                     });
                 }
             });
-            renderConfigPanel(); saveToLocal();
+            renderConfigPanel(); saveToLocal({ rawLogChanged: true });
         };
         reader.readAsText(file, "UTF-8");
     });
@@ -3617,14 +3958,14 @@
         if (checked) {
             if (!discordOtherChannels.includes(ch)) discordOtherChannels.push(ch);
             const conf = channelConfigs[ch];
-            const preset = THEME_PRESETS[document.body.getAttribute('data-theme') || 'light'];
+            const preset = THEME_PRESETS[getValidTheme(document.body.getAttribute('data-theme'))];
             if (conf && (!conf.bgColor || conf.bgColor === preset.customBg)) {
                 conf.bgColor = preset.otherBg;
             }
         } else {
             discordOtherChannels = discordOtherChannels.filter(item => item !== ch);
             const conf = channelConfigs[ch];
-            const preset = THEME_PRESETS[document.body.getAttribute('data-theme') || 'light'];
+            const preset = THEME_PRESETS[getValidTheme(document.body.getAttribute('data-theme'))];
             if (conf && conf.bgColor === preset.otherBg) {
                 conf.bgColor = preset.customBg;
             }
@@ -3873,11 +4214,7 @@
     });
 
     function applyMonochromeTextColors() {
-        const monoColor = charColorMap["KP（空白）"] || (
-            document.body.getAttribute('data-theme') === 'dark'
-                ? '#d1d1d1'
-                : '#4a4a4a'
-        );
+        const monoColor = charColorMap["KP（空白）"] || getDefaultLogTextColor();
 
         Object.keys(charColorMap).forEach(name => {
             charColorMap[name] = monoColor;
@@ -4003,14 +4340,14 @@
             rawLogData[index].tocTitle = getDefaultTOCTitle(rawLogData[index]);
         }
 
-        saveToLocal();
+        saveToLocal({ rawLogChanged: true });
         liveRenderLog();
     }
 
     function setItemTOCTitle(index, value) {
         if (!rawLogData[index]) return;
         rawLogData[index].tocTitle = value;
-        saveToLocal();
+        saveToLocal({ rawLogChanged: true });
         renderTOC();
     }
 
@@ -4063,7 +4400,7 @@
         moveSourceIndex = null;
 
         rerenderKeepViewport();
-        saveToLocal();
+        saveToLocal({ rawLogChanged: true });
 
         focusEditableAfterRender(newIndex);
     }
@@ -4102,7 +4439,7 @@
                 moveSourceIndex = null;
 
                 rerenderKeepViewport();
-                saveToLocal();
+                saveToLocal({ rawLogChanged: true });
             };
 
             reader.readAsDataURL(file);
@@ -4176,7 +4513,7 @@
             moveRangeEnd = range.end;
         }
 
-        saveToLocal();
+        saveToLocal({ rawLogChanged: true });
         rerenderKeepViewport();
     }
 
@@ -4350,12 +4687,14 @@
             return true;
         }
 
-        rawLogData[idx].html = normalizeEditorText(editingNode);
+        const nextHtml = normalizeEditorText(editingNode);
+        const didChange = rawLogData[idx]?.html !== nextHtml;
+        rawLogData[idx].html = nextHtml;
         editingNode.contentEditable = "false";
         editingNode.onblur = null;
         editingIndex = null;
 
-        saveToLocal();
+        saveToLocal({ rawLogChanged: didChange });
 
         if (rerender) {
             if (keepViewport) {
