@@ -143,6 +143,14 @@
             z-index: 118;
         }
         .channel-tab-btn {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            max-width: min(280px, 58vw);
+            min-width: 86px;
+            overflow: hidden;
             border: 1px solid var(--border-color);
             border-bottom: none;
             background: var(--bar-bg);
@@ -154,7 +162,26 @@
             cursor: pointer;
             opacity: 0.75;
             white-space: nowrap;
-            min-width: 86px;
+            text-overflow: ellipsis;
+        }
+        .channel-tab-btn[draggable="true"] {
+            cursor: grab;
+        }
+        .channel-tab-btn[draggable="true"]:active {
+            cursor: grabbing;
+        }
+        .channel-tab-btn.dragging {
+            opacity: 0.35;
+        }
+        .channel-tab-btn.drag-over {
+            border-color: var(--primary-color);
+            box-shadow: 0 -3px 0 var(--primary-color) inset;
+        }
+        .channel-tab-label {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .channel-tab-btn.active {
             background: var(--container-bg);
@@ -164,8 +191,9 @@
             box-shadow: 0 -2px 0 var(--primary-color) inset;
         }
         .channel-tab-count {
+            flex: 0 0 auto;
             opacity: 0.75;
-            margin-left: 5px;
+            margin-left: 0;
             font-weight: 600;
         }
 
@@ -215,6 +243,76 @@
         .channel-item { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
         .channel-name { min-width: 80px; font-weight: bold; color: var(--primary-color); }
         .channel-tag-input { width: 150px !important; margin: 0 !important; padding: 8px 15px !important; }
+        .discord-other-setting {
+            margin: 14px 0 26px;
+            padding: 14px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: rgba(127, 127, 127, 0.06);
+        }
+        .discord-other-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary-color);
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+        .discord-other-dropdown {
+            position: relative;
+            max-width: 420px;
+        }
+        .discord-other-toggle {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 14px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--container-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            font-weight: 700;
+            text-align: left;
+        }
+        .discord-other-menu {
+            display: none;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 6px);
+            z-index: 160;
+            max-height: 260px;
+            overflow: auto;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--container-bg);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.14);
+        }
+        .discord-other-dropdown.open .discord-other-menu {
+            display: block;
+        }
+        .discord-other-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 9px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-color);
+            font-weight: 600;
+        }
+        .discord-other-option:hover {
+            background: rgba(127, 127, 127, 0.1);
+        }
+        .discord-other-hint {
+            margin-top: 8px;
+            font-size: 12px;
+            opacity: 0.68;
+        }
 
         #output { margin-top: 60px; padding: 50px; border: 1px solid var(--border-color); background: var(--container-bg); display: none; border-radius: 25px; }
         .log-item {
@@ -1022,7 +1120,7 @@
             </label>
 
             <label class="inline-checkbox">
-                <input type="checkbox" id="global-show-time" onchange="globalShowTime = this.checked; liveRenderLog(); saveToLocal();">
+                <input type="checkbox" id="global-show-time" onchange="setTimeDisplayMode(this.checked ? 'all' : 'none')">
                 顯示時間
             </label>
 
@@ -1043,6 +1141,7 @@
             <div style="cursor: default; padding: 10px 0;">
                 <div class="config-title">頻道與顏色設定</div>
                 <div id="channel-options"></div>
+                <div id="discord-other-options"></div>
                 
                 <div class="config-title">角色對話顏色調整</div>
                 <div id="character-colors" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;"></div>
@@ -1077,6 +1176,7 @@
     let charNameVisibilityMap = {};
     let channelConfigs = {};
     let rawLogData = [];
+    let discordOtherChannels = [];
     let hoList = [];
     let activeIndex = null;
     let moveSourceIndex = null;
@@ -1086,8 +1186,13 @@
     let editingIndex = null;
     let logViewMode = 'mixed';
     let activeChannelTab = '[main]';
+    let channelOrder = [];
+    let draggedChannelTab = null;
+    let suppressChannelTabClick = false;
+    let channelLabelUpdateTimer = null;
     let logScrollPositions = {};
     let globalShowTime = false;
+    let globalTimeDisplayMode = 'none';
     let activeBlobUrls = [];
 
     let hoverInsertIndex = null;
@@ -1428,12 +1533,16 @@
         }
 
         function nodeToMarkdown(node) {
-            if (node.nodeType === Node.TEXT_NODE) return node.nodeValue || '';
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.nodeValue || '';
+                return /^\s*\(edited\)\s*$/i.test(text) ? '' : text;
+            }
             if (node.nodeType !== Node.ELEMENT_NODE) return '';
 
             const tag = node.tagName;
             const cls = node.classList || { contains: () => false };
 
+            if (cls.contains('chatlog__edited-timestamp')) return '';
             if (tag === 'BR') return '\n';
             if (cls.contains('chatlog__markdown-quote')) return `\n${quoteToMarkdown(node)}\n`;
             if (tag === 'H1') return `\n#H1-${blockText(childrenToMarkdown(node))}-H1#\n`;
@@ -1522,11 +1631,13 @@
             mode: document.body.getAttribute('data-mode'),
             logViewMode,
             activeChannelTab,
+            channelOrder,
             logScrollPositions,
             globalShowName: document.getElementById('global-show-name').checked,
-            globalShowTime: document.getElementById('global-show-time')?.checked || false,
+            globalShowTime: globalTimeDisplayMode !== 'none',
+            globalTimeDisplayMode,
             imgSrc: document.getElementById('image-preview').querySelector('img')?.src || '',
-            charColorMap, detectedCharColorMap, manualCharColorMap, charNameVisibilityMap, channelConfigs, rawLogData,
+            charColorMap, detectedCharColorMap, manualCharColorMap, charNameVisibilityMap, channelConfigs, discordOtherChannels, rawLogData,
             isOutputVisible: document.getElementById('output').style.display === 'block'
         };
         localStorage.setItem('trpg_log_v44', JSON.stringify(data));
@@ -1544,10 +1655,12 @@
         document.body.setAttribute('data-theme', data.theme || 'light');
         logViewMode = data.logViewMode || 'mixed';
         activeChannelTab = data.activeChannelTab || '[main]';
+        channelOrder = Array.isArray(data.channelOrder) ? data.channelOrder : [];
         logScrollPositions = data.logScrollPositions || {};
         updateLogViewModeButtons();
         document.getElementById('global-show-name').checked = (data.globalShowName !== undefined) ? data.globalShowName : true;
-        globalShowTime = (data.globalShowTime !== undefined) ? data.globalShowTime : false;
+        globalTimeDisplayMode = data.globalTimeDisplayMode || ((data.globalShowTime !== undefined && data.globalShowTime) ? 'all' : 'none');
+        globalShowTime = globalTimeDisplayMode !== 'none';
         const globalShowTimeEl = document.getElementById('global-show-time');
         if (globalShowTimeEl) globalShowTimeEl.checked = globalShowTime;
         if (data.imgSrc) document.getElementById('image-preview').innerHTML = `<img src="${data.imgSrc}" style="max-width:100%; max-height:100%; border-radius:12px;">`;
@@ -1556,6 +1669,7 @@
         manualCharColorMap = data.manualCharColorMap || {};
         charNameVisibilityMap = data.charNameVisibilityMap || {};
         channelConfigs = data.channelConfigs || {};
+        discordOtherChannels = Array.isArray(data.discordOtherChannels) ? data.discordOtherChannels : [];
         if (data.rawLogData) {
             rawLogData = data.rawLogData;
             renderConfigPanel();
@@ -1700,8 +1814,86 @@
         return conf?.label || ch.replace(/[\[\]]/g, '');
     }
 
+    function getKnownChannelKeys() {
+        const keys = [];
+        const seen = new Set();
+        const add = ch => {
+            if (!ch || seen.has(ch)) return;
+            seen.add(ch);
+            keys.push(ch);
+        };
+
+        rawLogData.forEach(item => add(item?.ch));
+        Object.keys(channelConfigs).forEach(add);
+        if (!keys.length) add('[main]');
+        return keys;
+    }
+
+    function normalizeChannelOrder() {
+        const knownKeys = getKnownChannelKeys();
+        const knownSet = new Set(knownKeys);
+        channelOrder = channelOrder.filter(ch => knownSet.has(ch));
+
+        knownKeys.forEach(ch => {
+            if (!channelOrder.includes(ch)) channelOrder.push(ch);
+        });
+
+        return channelOrder;
+    }
+
+    function sortChannelsByUserOrder(keys) {
+        const order = normalizeChannelOrder();
+        const orderIndex = new Map(order.map((ch, index) => [ch, index]));
+
+        return [...keys].sort((a, b) => {
+            const ai = orderIndex.has(a) ? orderIndex.get(a) : Number.MAX_SAFE_INTEGER;
+            const bi = orderIndex.has(b) ? orderIndex.get(b) : Number.MAX_SAFE_INTEGER;
+            return ai - bi;
+        });
+    }
+
+    function setDiscordChannelOrderByFirstMessageTime() {
+        const channelFirsts = new Map();
+
+        rawLogData.forEach((item, index) => {
+            if (!item || item.source !== 'discord' || !item.ch) return;
+
+            const timestamp = Number(item.timestamp);
+            const hasTime = item.timestamp !== null && item.timestamp !== undefined && Number.isFinite(timestamp);
+            const current = channelFirsts.get(item.ch);
+
+            if (!current) {
+                channelFirsts.set(item.ch, {
+                    ch: item.ch,
+                    timestamp: hasTime ? timestamp : null,
+                    firstIndex: index
+                });
+                return;
+            }
+
+            if (hasTime && (current.timestamp === null || timestamp < current.timestamp)) {
+                current.timestamp = timestamp;
+                current.firstIndex = index;
+            }
+        });
+
+        channelOrder = [...channelFirsts.values()]
+            .sort((a, b) => {
+                const aHasTime = a.timestamp !== null;
+                const bHasTime = b.timestamp !== null;
+                if (aHasTime && bHasTime && a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+                if (aHasTime !== bHasTime) return aHasTime ? -1 : 1;
+                return a.firstIndex - b.firstIndex;
+            })
+            .map(entry => entry.ch);
+
+        normalizeChannelOrder();
+    }
+
     function getChannelOptionsHTML(selectedCh) {
-        const channels = ['[main]', ...Object.keys(channelConfigs).filter(ch => ch !== '[main]')];
+        const keys = new Set(['[main]', ...Object.keys(channelConfigs)]);
+        rawLogData.forEach(item => { if (item?.ch) keys.add(item.ch); });
+        const channels = sortChannelsByUserOrder([...keys]);
         return channels.map(ch => {
             const selected = ch === selectedCh ? 'selected' : '';
             return `<option value="${escapeAttr(ch)}" ${selected}>${getChannelLabel(ch)}</option>`;
@@ -1751,6 +1943,79 @@
         return conf ? conf.checked : true;
     }
 
+    function isDiscordChannel(ch) {
+        return rawLogData.some(item => item && item.source === 'discord' && item.ch === ch);
+    }
+
+    function hasDiscordLogData() {
+        return rawLogData.some(item => item && item.source === 'discord');
+    }
+
+    function getDiscordChannelSummaries() {
+        const map = new Map();
+
+        rawLogData.forEach(item => {
+            if (!item || item.source !== 'discord' || !item.ch) return;
+
+            if (!map.has(item.ch)) {
+                map.set(item.ch, {
+                    ch: item.ch,
+                    label: getChannelLabel(item.ch),
+                    count: 0
+                });
+            }
+
+            map.get(item.ch).count++;
+        });
+
+        const orderedKeys = sortChannelsByUserOrder([...map.keys()]);
+        return orderedKeys.map(ch => map.get(ch)).filter(Boolean);
+    }
+
+    function normalizeDiscordOtherChannels() {
+        const discordKeys = new Set(getDiscordChannelSummaries().map(channel => channel.ch));
+        discordOtherChannels = discordOtherChannels.filter(ch => discordKeys.has(ch));
+        return discordOtherChannels;
+    }
+
+    function isOtherChannel(ch) {
+        return ch === '[other]' || discordOtherChannels.includes(ch);
+    }
+
+    function shouldDisplayItemTime(item) {
+        if (!item || !item.displayTime) return false;
+        if (globalTimeDisplayMode === 'all') return true;
+        if (globalTimeDisplayMode === 'other') return isOtherChannel(item.ch);
+        return false;
+    }
+
+    function getTimeDisplayModeLabel() {
+        if (globalTimeDisplayMode === 'all') return '時間：全部顯示';
+        if (globalTimeDisplayMode === 'other') return '時間：只顯示場外';
+        return '時間：不顯示';
+    }
+
+    function syncTimeDisplayControls() {
+        globalShowTime = globalTimeDisplayMode !== 'none';
+        const globalShowTimeEl = document.getElementById('global-show-time');
+        if (globalShowTimeEl) globalShowTimeEl.checked = globalShowTime;
+
+        const button = document.getElementById('discord-time-mode-btn');
+        if (button) button.textContent = getTimeDisplayModeLabel();
+    }
+
+    function setTimeDisplayMode(mode) {
+        globalTimeDisplayMode = ['none', 'all', 'other'].includes(mode) ? mode : 'none';
+        syncTimeDisplayControls();
+        liveRenderLog();
+        saveToLocal();
+    }
+
+    function cycleTimeDisplayMode() {
+        const nextMode = globalTimeDisplayMode === 'none' ? 'all' : (globalTimeDisplayMode === 'all' ? 'other' : 'none');
+        setTimeDisplayMode(nextMode);
+    }
+
     function getChannelSummaries() {
         const map = new Map();
 
@@ -1768,7 +2033,8 @@
             map.get(item.ch).count++;
         });
 
-        return [...map.values()];
+        const orderedKeys = sortChannelsByUserOrder([...map.keys()]);
+        return orderedKeys.map(ch => map.get(ch)).filter(Boolean);
     }
 
     function ensureActiveChannelTab() {
@@ -1781,6 +2047,22 @@
         if (!channels.some(channel => channel.ch === activeChannelTab)) {
             activeChannelTab = channels[0].ch;
         }
+    }
+
+    function reorderChannelTab(sourceCh, targetCh) {
+        if (!sourceCh || !targetCh || sourceCh === targetCh) return;
+
+        normalizeChannelOrder();
+        const sourceIndex = channelOrder.indexOf(sourceCh);
+        const targetIndex = channelOrder.indexOf(targetCh);
+        if (sourceIndex < 0 || targetIndex < 0) return;
+
+        const [moved] = channelOrder.splice(sourceIndex, 1);
+        channelOrder.splice(targetIndex, 0, moved);
+        renderChannelTabs();
+        renderConfigPanel();
+        liveRenderTOC();
+        saveToLocal();
     }
 
     function renderChannelTabs() {
@@ -1802,14 +2084,60 @@
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = `channel-tab-btn${channel.ch === activeChannelTab ? ' active' : ''}`;
-            btn.textContent = channel.label;
+            btn.title = channel.label;
+            btn.draggable = true;
+            btn.dataset.channel = channel.ch;
+
+            const label = document.createElement('span');
+            label.className = 'channel-tab-label';
+            label.textContent = channel.label;
+            btn.appendChild(label);
 
             const count = document.createElement('span');
             count.className = 'channel-tab-count';
             count.textContent = channel.count;
             btn.appendChild(count);
 
-            btn.addEventListener('click', () => setActiveChannelTab(channel.ch));
+            btn.addEventListener('dragstart', event => {
+                draggedChannelTab = channel.ch;
+                suppressChannelTabClick = false;
+                btn.classList.add('dragging');
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', channel.ch);
+            });
+
+            btn.addEventListener('dragover', event => {
+                if (!draggedChannelTab || draggedChannelTab === channel.ch) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                btn.classList.add('drag-over');
+            });
+
+            btn.addEventListener('dragleave', () => {
+                btn.classList.remove('drag-over');
+            });
+
+            btn.addEventListener('drop', event => {
+                event.preventDefault();
+                btn.classList.remove('drag-over');
+                const sourceCh = event.dataTransfer.getData('text/plain') || draggedChannelTab;
+                if (sourceCh && sourceCh !== channel.ch) {
+                    suppressChannelTabClick = true;
+                    reorderChannelTab(sourceCh, channel.ch);
+                    setTimeout(() => { suppressChannelTabClick = false; }, 0);
+                }
+            });
+
+            btn.addEventListener('dragend', () => {
+                btn.classList.remove('dragging', 'drag-over');
+                draggedChannelTab = null;
+                setTimeout(() => { suppressChannelTabClick = false; }, 0);
+            });
+
+            btn.addEventListener('click', () => {
+                if (suppressChannelTabClick) return;
+                setActiveChannelTab(channel.ch);
+            });
             tabs.appendChild(btn);
         });
     }
@@ -1986,7 +2314,7 @@
         });
         Object.keys(channelConfigs).forEach(ch => {
             const conf = channelConfigs[ch];
-            conf.bgColor = (ch === '[info]') ? preset.infoBg : (ch === '[other]') ? preset.otherBg : preset.customBg;
+            conf.bgColor = (ch === '[info]') ? preset.infoBg : isOtherChannel(ch) ? preset.otherBg : preset.customBg;
         });
         renderConfigPanel(); liveRenderLog();
     }
@@ -2096,7 +2424,7 @@
         out.innerHTML = '';
         renderChannelTabs();
         const globalShowName = document.getElementById('global-show-name')?.checked;
-        globalShowTime = document.getElementById('global-show-time')?.checked || false;
+        syncTimeDisplayControls();
         const currentMode = document.body.getAttribute('data-mode');
         let lastRenderedType = null;
               
@@ -2131,7 +2459,7 @@
             const displayColor = (item.name === "" || item.name === "system") ? (charColorMap["KP（空白）"] || charColorMap["KP嚗征?踝?"] || getDefaultLogTextColor()) : (charColorMap[item.name] || getDefaultLogTextColor());
             const isNameVisibleForChar = item.name && charNameVisibilityMap[item.name] !== false;
             const shouldShowName = !!(globalShowName && item.name && item.name !== "system" && isNameVisibleForChar);
-            const shouldShowTime = !!(globalShowTime && item.displayTime);
+            const shouldShowTime = shouldDisplayItemTime(item);
             const timeLabel = shouldShowTime ? `<span class="log-time-label${shouldShowName ? '' : ' no-name-time'}">${escapeAttr(item.displayTime)}</span>` : '';
             const nameLabel = (shouldShowName || shouldShowTime) ? `<span class="char-name-label" style="color:${displayColor}">${shouldShowName ? escapeAttr(item.name) : ''}${timeLabel}</span>` : '';
             const parsedContent = parseCustomMarkdown(item.html);
@@ -2171,7 +2499,7 @@
                     contentHTML = `<div class="log-line" style="${alignStyle} color:${displayColor};">${nameLabel}${textHTML}</div>`;
                 }
             }
-            else if (item.ch === '[other]') {
+            else if (isOtherChannel(item.ch)) {
                 renderType = 'other';
                 contentHTML = `<div class="other-bubble" style="background-color:${conf.bgColor}; color:${displayColor}; text-align:right;">${nameLabel}${textHTML}</div>`;
             }
@@ -2398,7 +2726,7 @@
             let j = i + 1;
             const currentChannel = block.getAttribute('data-channel');
             const currentBg = block.style.backgroundColor;
-            if (currentChannel === '[main]' || currentChannel === '[other]') {
+            if (currentChannel === '[main]' || isOtherChannel(currentChannel)) {
                 i++;
                 continue;
             }
@@ -2497,8 +2825,8 @@
         if (!channels.length) return '';
         const totalCount = channels.reduce((sum, channel) => sum + channel.count, 0);
         const buttons = [
-            `<button type="button" class="channel-tab-btn active" data-channel="__all__">全部<span class="channel-tab-count">${totalCount}</span></button>`,
-            ...channels.map(channel => `<button type="button" class="channel-tab-btn" data-channel="${escapeAttr(channel.ch)}">${escapeAttr(channel.label)}<span class="channel-tab-count">${channel.count}</span></button>`)
+            `<button type="button" class="channel-tab-btn active" data-channel="__all__" title="全部"><span class="channel-tab-label">全部</span><span class="channel-tab-count">${totalCount}</span></button>`,
+            ...channels.map(channel => `<button type="button" class="channel-tab-btn" data-channel="${escapeAttr(channel.ch)}" title="${escapeAttr(channel.label)}"><span class="channel-tab-label">${escapeAttr(channel.label)}</span><span class="channel-tab-count">${channel.count}</span></button>`)
         ].join('');
         return `<div class="channel-tabs export-channel-tabs">${buttons}</div>`;
     }
@@ -2664,8 +2992,14 @@
         };
     }
 
-    function normalizeDiscordDisplayTime(text) {
+    function stripDiscordEditedMarker(text) {
         return String(text || '')
+            .replace(/\s*\(edited\)\s*/gi, ' ')
+            .replace(/\s*（edited）\s*/gi, ' ');
+    }
+
+    function normalizeDiscordDisplayTime(text) {
+        return stripDiscordEditedMarker(text)
             .replace(/\s*星期[一二三四五六日]\s*/g, ' ')
             .replace(/\s+/g, ' ')
             .trim();
@@ -3001,6 +3335,8 @@
         manualCharColorMap = {};
         charNameVisibilityMap = {};
         channelConfigs = {};
+        channelOrder = [];
+        discordOtherChannels = [];
         rawLogData = [];
         const currentTheme = document.body.getAttribute('data-theme') || 'light';
         charColorMap["KP（空白）"] = THEME_PRESETS[currentTheme].kpText;
@@ -3020,6 +3356,7 @@
     function finishDiscordImport(imports) {
         const allItems = imports.flatMap(item => item.items);
         rawLogData = sortLogItems(allItems);
+        setDiscordChannelOrderByFirstMessageTime();
 
         const firstGuildName = imports.map(item => item.meta.guildName).find(Boolean);
         if (!document.getElementById('scenario-name').value.trim() && firstGuildName) {
@@ -3027,8 +3364,9 @@
         }
 
         const globalShowTimeEl = document.getElementById('global-show-time');
-        globalShowTime = true;
-        if (globalShowTimeEl) globalShowTimeEl.checked = true;
+        globalTimeDisplayMode = 'none';
+        globalShowTime = false;
+        if (globalShowTimeEl) globalShowTimeEl.checked = false;
 
         activeChannelTab = rawLogData[0]?.ch || '[main]';
         console.log('Discord imports:', imports.map(item => item.meta));
@@ -3182,20 +3520,22 @@
         reader.onload = ev => {
             const htmlText = ev.target.result;
             const source = detectLogSource(htmlText);
-            charColorMap = {}; detectedCharColorMap = {}; manualCharColorMap = {}; charNameVisibilityMap = {}; channelConfigs = {}; rawLogData = [];
+            charColorMap = {}; detectedCharColorMap = {}; manualCharColorMap = {}; charNameVisibilityMap = {}; channelConfigs = {}; channelOrder = []; discordOtherChannels = []; rawLogData = [];
             const currentTheme = document.body.getAttribute('data-theme') || 'light';
             charColorMap["KP（空白）"] = THEME_PRESETS[currentTheme].kpText;
 
             if (source === 'discord') {
                 rawLogData = sortLogItems(parseDiscordHtmlToRawLogData(htmlText));
+                setDiscordChannelOrderByFirstMessageTime();
                 const discordMeta = parseDiscordHtmlToRawLogData.discordMeta || {};
                 if (!document.getElementById('scenario-name').value.trim() && discordMeta.guildName) {
                     document.getElementById('scenario-name').value = discordMeta.guildName;
                 }
 
                 const globalShowTimeEl = document.getElementById('global-show-time');
-                globalShowTime = true;
-                if (globalShowTimeEl) globalShowTimeEl.checked = true;
+                globalTimeDisplayMode = 'none';
+                globalShowTime = false;
+                if (globalShowTimeEl) globalShowTimeEl.checked = false;
 
                 activeChannelTab = rawLogData[0]?.ch || '[main]';
                 renderConfigPanel();
@@ -3271,10 +3611,118 @@
         }
     });
 
+    function setDiscordOtherChannel(ch, checked) {
+        if (!ch || !isDiscordChannel(ch)) return;
+
+        if (checked) {
+            if (!discordOtherChannels.includes(ch)) discordOtherChannels.push(ch);
+            const conf = channelConfigs[ch];
+            const preset = THEME_PRESETS[document.body.getAttribute('data-theme') || 'light'];
+            if (conf && (!conf.bgColor || conf.bgColor === preset.customBg)) {
+                conf.bgColor = preset.otherBg;
+            }
+        } else {
+            discordOtherChannels = discordOtherChannels.filter(item => item !== ch);
+            const conf = channelConfigs[ch];
+            const preset = THEME_PRESETS[document.body.getAttribute('data-theme') || 'light'];
+            if (conf && conf.bgColor === preset.otherBg) {
+                conf.bgColor = preset.customBg;
+            }
+        }
+
+        normalizeDiscordOtherChannels();
+        renderConfigPanel();
+        liveRenderLog();
+        saveToLocal();
+    }
+
+    function toggleDiscordOtherDropdown() {
+        const dropdown = document.getElementById('discord-other-dropdown');
+        if (!dropdown) return;
+        dropdown.classList.toggle('open');
+    }
+
+    function renderDiscordOtherSelector() {
+        const container = document.getElementById('discord-other-options');
+        if (!container) return;
+
+        if (!hasDiscordLogData()) {
+            container.innerHTML = '';
+            return;
+        }
+
+        normalizeDiscordOtherChannels();
+        const channels = getDiscordChannelSummaries();
+        if (!channels.length) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const selectedCount = discordOtherChannels.length;
+        const summaryText = selectedCount ? `已選 ${selectedCount} 個頻道` : '選擇 Discord 場外頻道';
+        container.innerHTML = `
+            <div class="discord-other-setting">
+                <div class="discord-other-title">設定為場外訊息</div>
+                <button type="button" class="mini-action-btn" id="discord-time-mode-btn" onclick="cycleTimeDisplayMode()" style="margin-bottom:10px;">
+                    ${getTimeDisplayModeLabel()}
+                </button>
+                <div class="discord-other-dropdown" id="discord-other-dropdown">
+                    <button type="button" class="discord-other-toggle" onclick="toggleDiscordOtherDropdown()">
+                        <span>${summaryText}</span>
+                        <span>▾</span>
+                    </button>
+                    <div class="discord-other-menu" id="discord-other-menu"></div>
+                </div>
+                <div class="discord-other-hint">選中的 Discord 頻道會用場外訊息樣式顯示，但仍保留原本分頻道標籤。</div>
+            </div>
+        `;
+
+        const menu = document.getElementById('discord-other-menu');
+        channels.forEach(channel => {
+            const label = document.createElement('label');
+            label.className = 'discord-other-option';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = discordOtherChannels.includes(channel.ch);
+            input.addEventListener('change', () => setDiscordOtherChannel(channel.ch, input.checked));
+
+            const text = document.createElement('span');
+            text.textContent = channel.label;
+
+            label.appendChild(input);
+            label.appendChild(text);
+            menu.appendChild(label);
+        });
+    }
+
+    function handleChannelLabelInput(input) {
+        const ch = input?.dataset?.channel;
+        if (!ch || !channelConfigs[ch]) return;
+
+        channelConfigs[ch].label = input.value;
+        clearTimeout(channelLabelUpdateTimer);
+        channelLabelUpdateTimer = setTimeout(flushChannelLabelUpdate, 500);
+    }
+
+    function handleChannelLabelKeydown(event, input) {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        flushChannelLabelUpdate();
+        input.blur();
+    }
+
+    function flushChannelLabelUpdate() {
+        clearTimeout(channelLabelUpdateTimer);
+        channelLabelUpdateTimer = null;
+        liveRenderLog();
+        saveToLocal();
+    }
+
     function renderConfigPanel() {
         document.getElementById('config-panel').style.display = 'block';
         const chContainer = document.getElementById('channel-options'); chContainer.innerHTML = '';
-        Object.keys(channelConfigs).forEach(ch => {
+        sortChannelsByUserOrder(Object.keys(channelConfigs)).forEach(ch => {
             if (ch === '[main]') return;
             const conf = channelConfigs[ch];
             const div = document.createElement('div'); div.className = 'channel-item';
@@ -3282,7 +3730,7 @@
             div.innerHTML = `
                 <input type="checkbox" id="chk-${ch}" ${conf.checked?'checked':''} onchange="channelConfigs['${ch}'].checked=this.checked; liveRenderLog(); saveToLocal();">
                 <span class="channel-name">${ch.replace(/[\[\]]/g,'')}</span>
-                <input type="text" class="channel-tag-input" id="tag-${ch}" value="${conf.label}" oninput="channelConfigs['${ch}'].label=this.value; liveRenderLog(); saveToLocal();">
+                <input type="text" class="channel-tag-input" id="tag-${ch}" data-channel="${escapeAttr(ch)}" value="${escapeAttr(conf.label)}" oninput="handleChannelLabelInput(this)" onblur="flushChannelLabelUpdate()" onkeydown="handleChannelLabelKeydown(event, this)">
                 
                 <div class="color-pill" style="margin-left:auto; gap:12px; padding: 6px 15px; height: auto;">
                     <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
@@ -3299,6 +3747,7 @@
                 </div>`;
             chContainer.appendChild(div);
         });
+        renderDiscordOtherSelector();
         const charContainer = document.getElementById('character-colors'); charContainer.innerHTML = '';
         Object.keys(charColorMap).forEach(name => {
             const color = charColorMap[name];
@@ -3668,7 +4117,7 @@
         if (prev.ch !== next.ch) return false;
 
         // main / other 不參與融合
-        if (prev.ch === '[main]' || prev.ch === '[other]') return false;
+        if (prev.ch === '[main]' || isOtherChannel(prev.ch)) return false;
 
         if (next.splitBefore) return false;
 
@@ -3700,7 +4149,7 @@
         if (prev.ch !== next.ch) return false;
 
         // main / other 不自動融合
-        if (prev.ch === '[main]' || prev.ch === '[other]') return false;
+        if (prev.ch === '[main]' || isOtherChannel(prev.ch)) return false;
 
         const prevConf = channelConfigs[prev.ch];
         const nextConf = channelConfigs[next.ch];
@@ -3854,9 +4303,9 @@
             item &&
             nextItem &&
             item.ch !== '[main]' &&
-            item.ch !== '[other]' &&
+            !isOtherChannel(item.ch) &&
             nextItem.ch !== '[main]' &&
-            nextItem.ch !== '[other]' &&
+            !isOtherChannel(nextItem.ch) &&
             canAutoJoin(item, nextItem);
 
         if (!canToggleThisBoundary) {
