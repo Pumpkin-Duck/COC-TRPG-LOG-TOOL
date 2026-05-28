@@ -1273,6 +1273,7 @@
     const DB_NAME = 'coc_trpg_log_tool_db';
     const DB_VERSION = 1;
     const LOG_STORE_NAME = 'logs';
+    const EXPORT_DATA_SCRIPT_ID = 'coc-trpg-log-export-data';
 
     let charColorMap = {};
     let detectedCharColorMap = {};
@@ -2769,6 +2770,8 @@
               
         
         getRenderableLogEntries().forEach(({ item, index }) => {
+            if (item?.type === 'image' && (!item.src || item.missingLocalAsset)) return;
+
             const conf = channelConfigs[item.ch]; 
             
             const wrap = document.createElement('div'); 
@@ -3187,6 +3190,21 @@
         return `<script>(function(){const tabs=Array.from(document.querySelectorAll('.export-channel-tabs .channel-tab-btn'));const items=Array.from(document.querySelectorAll('#out-content .log-item'));function setChannel(channel){tabs.forEach(tab=>tab.classList.toggle('active',tab.dataset.channel===channel));items.forEach(item=>{item.style.display=(channel==='__all__'||item.dataset.channel===channel)?'':'none';});}tabs.forEach(tab=>{tab.addEventListener('click',()=>setChannel(tab.dataset.channel||'__all__'));});document.querySelectorAll('.toc-item[data-index]').forEach(btn=>{btn.addEventListener('click',()=>{const channel=btn.dataset.channel||'__all__';const target=document.querySelector('#out-content .log-item[data-index="'+btn.dataset.index+'"]');if(!target)return;if(target.style.display==='none')setChannel(channel);target.scrollIntoView({behavior:'smooth',block:'center'});});});setChannel('__all__');})();<\/script>`;
     }
 
+    function buildToolExportDataScript(exportLogData) {
+        const payload = {
+            app: 'coc-trpg-log-tool',
+            version: 1,
+            exportedAt: Date.now(),
+            settings: {
+                ...getSettingsData(),
+                imgSrc: getCurrentIntroImageSrc()
+            },
+            rawLogData: exportLogData
+        };
+        const json = JSON.stringify(payload).replace(/</g, '\\u003c');
+        return `<script type="application/json" id="${EXPORT_DATA_SCRIPT_ID}">${json}<\/script>`;
+    }
+
     function isBlobUrl(src) {
         return typeof src === 'string' && src.startsWith('blob:');
     }
@@ -3287,7 +3305,7 @@
         const tocHTML = buildExportTOCHTML();
         const channelTabsHTML = shouldExportChannelTabs ? buildExportChannelTabsHTML(getChannelSummaries()) : '';
         const exportStyle = `#output{display:block;border:none;padding:20px;} .no-print{display:none !important;} .log-item{cursor:default;} .edit-btn,.edit-tools,.mode-switcher,.item-meta-editor,.toc-inline-editor{display:none !important;} .export-channel-tabs{display:flex !important;} .export-toc-panel{display:block !important;} ${shouldExportChannelTabs ? 'body{padding-bottom:96px;}' : ''}`;
-        const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(exportTitle)}</title><style>${style}${exportStyle}</style></head><body data-theme="${currentTheme}">${tocHTML}<div class="container"><div id="output">${content}</div></div>${channelTabsHTML}${buildExportInteractiveScript()}</body></html>`;
+        const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(exportTitle)}</title><style>${style}${exportStyle}</style></head><body data-theme="${currentTheme}">${tocHTML}<div class="container"><div id="output">${content}</div></div>${channelTabsHTML}${buildToolExportDataScript(exportLogData)}${buildExportInteractiveScript()}</body></html>`;
         const blob = new Blob([fullHTML], { type: 'text/html' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${exportTitle}.html`; a.click();
         } finally {
@@ -3303,6 +3321,9 @@
 
     function detectLogSource(htmlText) {
         const text = String(htmlText || '');
+        if (text.includes(`id="${EXPORT_DATA_SCRIPT_ID}"`) || text.includes(`id='${EXPORT_DATA_SCRIPT_ID}'`)) {
+            return 'tool';
+        }
         const discordMarkers = [
             'chatlog__message-container',
             'chatlog__author',
@@ -3314,6 +3335,73 @@
         const hitCount = discordMarkers.filter(marker => text.includes(marker)).length;
 
         return hasMessageContainer && hitCount >= 3 ? 'discord' : 'ccfolia';
+    }
+
+    function parseToolExportHtml(htmlText) {
+        const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+        const dataNode = doc.getElementById(EXPORT_DATA_SCRIPT_ID);
+        if (!dataNode) return null;
+
+        const payload = JSON.parse(dataNode.textContent || '{}');
+        if (payload?.app !== 'coc-trpg-log-tool' || !Array.isArray(payload.rawLogData)) {
+            throw new Error('Invalid tool export payload');
+        }
+        return payload;
+    }
+
+    function importToolExportHtmlText(htmlText) {
+        const payload = parseToolExportHtml(htmlText);
+        if (!payload) throw new Error('Missing tool export payload');
+
+        const settings = payload.settings || {};
+        document.getElementById('scenario-name').value = settings.scenarioName || '';
+        document.getElementById('intro-text').value = settings.introText || '';
+        document.getElementById('kp-name').value = settings.kpName || '';
+        hoList = Array.isArray(settings.hoList) ? settings.hoList : [];
+        renderHOEditor();
+
+        document.body.setAttribute('data-theme', getValidTheme(settings.theme));
+        updateThemeSelect();
+        document.body.setAttribute('data-mode', settings.mode || 'view');
+        logViewMode = settings.logViewMode || 'mixed';
+        activeChannelTab = settings.activeChannelTab || '[main]';
+        channelOrder = Array.isArray(settings.channelOrder) ? settings.channelOrder : [];
+        logScrollPositions = settings.logScrollPositions || {};
+        updateLogViewModeButtons();
+
+        document.getElementById('global-show-name').checked = (settings.globalShowName !== undefined) ? settings.globalShowName : true;
+        globalTimeDisplayMode = settings.globalTimeDisplayMode || ((settings.globalShowTime !== undefined && settings.globalShowTime) ? 'all' : 'none');
+        globalShowTime = globalTimeDisplayMode !== 'none';
+        const globalShowTimeEl = document.getElementById('global-show-time');
+        if (globalShowTimeEl) globalShowTimeEl.checked = globalShowTime;
+
+        const preview = document.getElementById('image-preview');
+        preview.innerHTML = settings.imgSrc
+            ? `<img src="${settings.imgSrc}" style="max-width:100%; max-height:100%; border-radius:12px;">`
+            : '<span>點擊或貼上</span>';
+
+        charColorMap = settings.charColorMap || {};
+        detectedCharColorMap = settings.detectedCharColorMap || {};
+        manualCharColorMap = settings.manualCharColorMap || {};
+        charNameVisibilityMap = settings.charNameVisibilityMap || {};
+        channelConfigs = settings.channelConfigs || {};
+        discordOtherChannels = Array.isArray(settings.discordOtherChannels) ? settings.discordOtherChannels : [];
+        rawLogData = payload.rawLogData;
+
+        activeIndex = null;
+        moveSourceIndex = null;
+        moveRangeStart = null;
+        moveRangeEnd = null;
+        moveMode = false;
+        editingIndex = null;
+        tocEditIndex = null;
+
+        showImportedOutput();
+        renderConfigPanel();
+        switchMode(settings.mode || 'view');
+        liveUpdateHeader();
+        liveRenderLog();
+        saveToLocal({ rawLogChanged: true, introImageChanged: !!settings.imgSrc });
     }
 
     function getDiscordMeta(doc) {
@@ -3586,7 +3674,7 @@
                     const src = img.getAttribute('src') || '';
                     if (!src) return;
                     const assetFile = resolveDiscordAssetFile(src, options.htmlFile, options.assetMap);
-                    const isLocalAsset = !!options.assetMap && !isExternalAssetSrc(src);
+                    const isLocalAsset = !isExternalAssetSrc(src);
                     let finalSrc = src;
                     let isBlobUrl = false;
                     let assetPath = '';
@@ -3598,6 +3686,7 @@
                         assetPath = assetFile.webkitRelativePath || assetFile.name || '';
                     } else if (isLocalAsset) {
                         console.warn('Discord attachment asset not found:', src);
+                        return;
                     }
 
                     items.push({
@@ -3608,7 +3697,7 @@
                         originalSrc: src,
                         assetPath,
                         isBlobUrl,
-                        missingLocalAsset: isLocalAsset && !assetFile,
+                        missingLocalAsset: false,
                         alt: img.getAttribute('alt') || 'Discord 圖片附件',
                         parentMessageId: messageId,
                         subOrder: index + 1
@@ -3830,8 +3919,20 @@
                 });
             }
 
+            const hasToolExport = loadedFiles.some(item => item.source === 'tool');
             const hasDiscord = loadedFiles.some(item => item.source === 'discord');
-            const hasCcfOlia = loadedFiles.some(item => item.source !== 'discord');
+            const hasCcfOlia = loadedFiles.some(item => item.source === 'ccfolia');
+
+            if (hasToolExport) {
+                if (files.length > 1 || hasDiscord || hasCcfOlia) {
+                    alert('工具匯出的 HTML 請單獨匯入，請不要與其他 HTML 混合上傳。');
+                    e.target.value = '';
+                    return;
+                }
+                importToolExportHtmlText(loadedFiles[0].htmlText);
+                e.target.value = '';
+                return;
+            }
 
             if (hasDiscord && hasCcfOlia) {
                 alert('請不要混合上傳 Discord 與 CCFOLIA HTML，請分開匯入。');
