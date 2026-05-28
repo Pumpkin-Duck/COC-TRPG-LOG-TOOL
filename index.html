@@ -4161,12 +4161,24 @@
         saveToLocal();
     }
 
+    function getColorInputValue(value, fallback = '#a67c52') {
+        const raw = String(value || '').trim();
+        if (/^#[0-9a-f]{6}$/i.test(raw)) return raw;
+        if (/^#[0-9a-f]{3}$/i.test(raw)) {
+            return '#' + raw.slice(1).split('').map(ch => ch + ch).join('');
+        }
+        const fallbackRaw = String(fallback || '#a67c52').trim();
+        return /^#[0-9a-f]{6}$/i.test(fallbackRaw) ? fallbackRaw : '#a67c52';
+    }
+
     function renderConfigPanel() {
         document.getElementById('config-panel').style.display = 'block';
         const chContainer = document.getElementById('channel-options'); chContainer.innerHTML = '';
         sortChannelsByUserOrder(Object.keys(channelConfigs)).forEach(ch => {
             if (ch === '[main]') return;
             const conf = channelConfigs[ch];
+            const bgColorInputValue = getColorInputValue(conf.bgColor, '#f9f9f9');
+            const borderColorInputValue = getColorInputValue(conf.borderColor, getColorInputValue(getComputedStyle(document.body).getPropertyValue('--primary-color')));
             const div = document.createElement('div'); div.className = 'channel-item';
             // 在 renderConfigPanel 裡面修改頻道設定的 HTML
             div.innerHTML = `
@@ -4177,13 +4189,13 @@
                 <div class="color-pill" style="margin-left:auto; gap:12px; padding: 6px 15px; height: auto;">
                     <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
                         <span style="font-size:10px; opacity:0.6;">底色</span>
-                        <input type="color" value="${conf.bgColor.substring(0,7)}" oninput="updateChannelColor('${ch}', 'bgColor', this.value, 'picker', this)">
+                        <input type="color" value="${bgColorInputValue}" oninput="updateChannelColor('${ch}', 'bgColor', this.value, 'picker', this)">
                         <input type="text" class="hex-field" value="${conf.bgColor}" style="width:55px !important; font-size:11px !important; text-align:center;" oninput="updateChannelColor('${ch}', 'bgColor', this.value, 'text', this)">
                     </div>
                     
                     <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
                         <span style="font-size:10px; opacity:0.6;">邊色</span>
-                        <input type="color" value="${(conf.borderColor || '#a67c52').substring(0,7)}" oninput="updateChannelColor('${ch}', 'borderColor', this.value, 'picker', this)">
+                        <input type="color" value="${borderColorInputValue}" oninput="updateChannelColor('${ch}', 'borderColor', this.value, 'picker', this)">
                         <input type="text" class="hex-field" value="${conf.borderColor || '#a67c52'}" style="width:55px !important; font-size:11px !important; text-align:center;" oninput="updateChannelColor('${ch}', 'borderColor', this.value, 'text', this)">
                     </div>
                 </div>`;
