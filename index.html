@@ -1015,6 +1015,7 @@
         @media (max-width: 900px) {
             body {
                 padding: 24px 24px;
+                font-size: 16px;
             }
 
             .container {
@@ -1025,6 +1026,17 @@
             #output {
                 padding: 28px;
                 border-radius: 18px;
+            }
+
+            .text-content,
+            .log-line,
+            .info-line {
+                font-size: 16px !important;
+                line-height: 1.85 !important;
+            }
+
+            .char-name-label {
+                font-size: 0.98em;
             }
 
             .row {
@@ -1061,17 +1073,35 @@
         }
         @media (max-width: 600px) {
             body {
-                padding: 16px;
+                padding: 12px;
+                font-size: 16px;
+                line-height: 1.75;
             }
 
             .container {
-                padding: 18px;
+                padding: 16px;
                 border-radius: 14px;
             }
 
             #output {
-                padding: 18px;
+                margin-top: 36px;
+                padding: 16px;
                 border-radius: 14px;
+            }
+
+            #out-title {
+                font-size: 26px !important;
+                line-height: 1.35;
+                margin-bottom: 28px !important;
+            }
+
+            #out-img img {
+                max-width: 100% !important;
+            }
+
+            #out-intro-wrapper {
+                margin-bottom: 28px !important;
+                padding-left: 16px !important;
             }
 
             h1.tool-title {
@@ -1110,6 +1140,12 @@
                 padding-right: 10px;
             }
 
+            .channel-tab-btn {
+                min-width: 72px;
+                padding: 7px 11px 8px;
+                font-size: 12px;
+            }
+
             .action-buttons {
                 flex-direction: column;
                 align-items: stretch !important;
@@ -1121,7 +1157,24 @@
             }
 
             .block-styled {
-                padding: 20px 18px;
+                padding: 18px 16px;
+                border-left-width: 7px;
+            }
+
+            .text-content,
+            .log-line {
+                font-size: 16px !important;
+                line-height: 1.9 !important;
+            }
+
+            .char-name-label {
+                margin-bottom: 4px;
+            }
+
+            .log-time-label {
+                display: block;
+                margin-left: 0;
+                margin-top: 1px;
             }
 
             .other-bubble {
@@ -1129,8 +1182,27 @@
                 padding: 12px 16px;
             }
 
+            .log-image {
+                max-width: 100%;
+                max-height: 70vh;
+            }
+
+            .toc-panel {
+                top: 112px;
+                width: min(82vw, 260px);
+                max-height: calc(100vh - 145px);
+            }
+
+            .toc-list {
+                max-height: calc(100vh - 200px);
+            }
+
             .edit-tools {
-                left: -42px;
+                left: auto;
+                right: 4px;
+                top: -14px;
+                transform: translateY(-100%);
+                flex-direction: row;
                 gap: 6px;
             }
 
@@ -1161,7 +1233,7 @@
 <button class="view-mode-switch no-print" id="view-mode-btn" onclick="toggleLogViewMode()" style="display:none;">切換分頻道模式</button>
 
 
-<aside class="toc-panel no-print" id="toc-panel">
+<aside class="toc-panel no-print" id="toc-panel" style="display:none;">
     <div class="toc-tab">目錄</div>
 
     <div class="toc-header">
@@ -3569,7 +3641,10 @@
     }
 
     function isRenderableImageSrc(src) {
-        return /^(https?:\/\/|data:image\/|blob:)/i.test(String(src || '').trim());
+        const value = String(src || '').trim();
+        if (!value) return false;
+        if (/^file:/i.test(value)) return false;
+        return /^(https?:\/\/|data:image\/|blob:)/i.test(value);
     }
 
     function isDirectDiscordImageSrc(src) {
@@ -4407,11 +4482,14 @@
 
         const items = buildTOCItems();
         list.innerHTML = '';
+        const panel = document.getElementById('toc-panel');
 
         if (!items.length) {
-            list.innerHTML = `<div style="padding:10px; font-size:13px; opacity:0.65;">尚未加入目錄項目</div>`;
+            if (panel) panel.style.display = 'none';
             return;
         }
+
+        if (panel) panel.style.display = '';
 
         items.forEach(({ index, title }) => {
             const btn = document.createElement('button');
