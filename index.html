@@ -2770,7 +2770,7 @@
               
         
         getRenderableLogEntries().forEach(({ item, index }) => {
-            if (item?.type === 'image' && (!item.src || item.missingLocalAsset)) return;
+            if (item?.type === 'image' && (!item.src || item.missingLocalAsset || !isRenderableImageSrc(item.src))) return;
 
             const conf = channelConfigs[item.ch]; 
             
@@ -2817,7 +2817,7 @@
                 const imageAlign = item.align === 'center' ? 'center' : 'left';
                 contentHTML = `
                     <div class="log-image-wrap" style="text-align:${imageAlign};">
-                        <img class="log-image" src="${item.src}" alt="${escapeAttr(item.alt || '插入圖片')}">
+                        <img class="log-image" src="${escapeAttr(item.src)}" alt="${escapeAttr(item.alt || '插入圖片')}">
                     </div>`;
             }
             else if (logViewMode === 'channel') {
@@ -3226,15 +3226,20 @@
         let failedCount = 0;
 
         for (const item of exportItems) {
-            if (item?.type !== 'image' || !item.isBlobUrl || !isBlobUrl(item.src)) continue;
+            if (item?.type !== 'image' || !isBlobUrl(item.src)) continue;
 
             try {
                 item.src = await blobUrlToDataUrl(item.src);
                 item.isBlobUrl = false;
                 item.isDataUrl = true;
+                item.missingLocalAsset = false;
             } catch (error) {
                 failedCount++;
                 console.warn('Failed to convert blob image for export:', item, error);
+                item.originalBlobSrc = item.src;
+                item.src = '';
+                item.isBlobUrl = false;
+                item.missingLocalAsset = true;
             }
         }
 
@@ -3242,7 +3247,7 @@
             console.warn(`${failedCount} image(s) failed to convert for export.`);
         }
 
-        return exportItems;
+        return { items: exportItems, failedCount };
     }
 
     function captureExportOutputHTML(exportItems = rawLogData) {
@@ -3277,9 +3282,7 @@
         const blobImageCount = rawLogData.filter(item =>
             item &&
             item.type === 'image' &&
-            item.isBlobUrl === true &&
-            typeof item.src === 'string' &&
-            item.src.startsWith('blob:')
+            isBlobUrl(item.src)
         ).length;
 
         if (blobImageCount > 0 && !confirm(`此團錄包含 ${blobImageCount} 張本地匯入圖片，下載 HTML 時會將圖片內嵌到檔案中，檔案可能較大。是否繼續？`)) {
@@ -3298,7 +3301,10 @@
         try {
         const exportTitle = document.getElementById('scenario-name').value || 'Log';
         const shouldExportChannelTabs = logViewMode === 'channel';
-        const exportLogData = await prepareLogDataForHtmlExport(rawLogData);
+        const { items: exportLogData, failedCount } = await prepareLogDataForHtmlExport(rawLogData);
+        if (failedCount > 0) {
+            alert(`有 ${failedCount} 張本機圖片無法轉存到下載 HTML，已略過這些圖片以避免產生失效的 blob 連結。`);
+        }
         const content = captureExportOutputHTML(exportLogData);
         const style = document.querySelector('style').innerHTML;
         const currentTheme = document.body.getAttribute('data-theme');
@@ -3519,12 +3525,23 @@
     }
 
     function normalizeAssetPath(path) {
-        return safeDecodeURIComponent(path)
+        const normalized = safeDecodeURIComponent(path)
             .replace(/\\/g, '/')
             .split(/[?#]/)[0]
             .replace(/^\.?\//, '')
             .replace(/\/+/g, '/')
             .trim();
+
+        const parts = [];
+        normalized.split('/').forEach(part => {
+            if (!part || part === '.') return;
+            if (part === '..') {
+                if (parts.length) parts.pop();
+                return;
+            }
+            parts.push(part);
+        });
+        return parts.join('/');
     }
 
     function stripTopFolder(path) {
@@ -3547,13 +3564,16 @@
             addAssetMapKey(map, relPath, file);
             addAssetMapKey(map, stripTopFolder(relPath), file);
             addAssetMapKey(map, safeDecodeURIComponent(relPath), file);
-            addAssetMapKey(map, file.name, file);
         });
         return map;
     }
 
-    function isExternalAssetSrc(src) {
-        return /^(https?:|data:|blob:|file:)/i.test(String(src || '').trim());
+    function isRenderableImageSrc(src) {
+        return /^(https?:\/\/|data:image\/|blob:)/i.test(String(src || '').trim());
+    }
+
+    function isDirectDiscordImageSrc(src) {
+        return /^(https?:\/\/|data:image\/|blob:)/i.test(String(src || '').trim());
     }
 
     function getFileDirectory(file) {
@@ -3563,18 +3583,17 @@
     }
 
     function resolveDiscordAssetFile(src, htmlFile, assetMap) {
-        if (!src || !assetMap || isExternalAssetSrc(src)) return null;
+        if (!src || !assetMap || isDirectDiscordImageSrc(src)) return null;
 
         const htmlDir = getFileDirectory(htmlFile);
         const normalizedSrc = normalizeAssetPath(src);
-        const candidates = [
-            src,
+        const htmlRelativeSrc = normalizeAssetPath(htmlDir ? `${htmlDir}/${src}` : src);
+        const candidates = [...new Set([
+            htmlRelativeSrc,
             normalizedSrc,
-            safeDecodeURIComponent(src),
-            htmlDir ? `${htmlDir}/${normalizedSrc}` : normalizedSrc,
-            stripTopFolder(normalizedSrc),
-            htmlDir ? stripTopFolder(`${htmlDir}/${normalizedSrc}`) : ''
-        ];
+            stripTopFolder(htmlRelativeSrc),
+            stripTopFolder(normalizedSrc)
+        ])];
 
         for (const candidate of candidates) {
             const key = normalizeAssetPath(candidate);
@@ -3674,10 +3693,11 @@
                     const src = img.getAttribute('src') || '';
                     if (!src) return;
                     const assetFile = resolveDiscordAssetFile(src, options.htmlFile, options.assetMap);
-                    const isLocalAsset = !isExternalAssetSrc(src);
+                    const isLocalAsset = !isDirectDiscordImageSrc(src);
                     let finalSrc = src;
                     let isBlobUrl = false;
                     let assetPath = '';
+                    let missingLocalAsset = false;
 
                     if (assetFile) {
                         finalSrc = URL.createObjectURL(assetFile);
@@ -3686,8 +3706,11 @@
                         assetPath = assetFile.webkitRelativePath || assetFile.name || '';
                     } else if (isLocalAsset) {
                         console.warn('Discord attachment asset not found:', src);
+                        missingLocalAsset = true;
                         return;
                     }
+
+                    if (!isRenderableImageSrc(finalSrc)) return;
 
                     items.push({
                         ...base,
@@ -3697,7 +3720,7 @@
                         originalSrc: src,
                         assetPath,
                         isBlobUrl,
-                        missingLocalAsset: false,
+                        missingLocalAsset,
                         alt: img.getAttribute('alt') || 'Discord 圖片附件',
                         parentMessageId: messageId,
                         subOrder: index + 1
