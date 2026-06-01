@@ -3,6 +3,7 @@
 <head>
     <link rel="icon" href="icon.webp" type="image/webp">
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CoC TRPG 團錄整理工具</title>
     <style id="dynamic-theme">
         :root {
@@ -14,6 +15,27 @@
             --border-color: #dcdcdc;
             --bar-bg: #f4f1ea;
             --edit-color: #e67e22;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        img,
+        video,
+        canvas,
+        svg {
+            max-width: 100%;
+            height: auto;
         }
 
         [data-theme="light"] {
@@ -199,6 +221,7 @@
         }
 
         .container {
+            width: 100%;
             max-width: 1100px;
             margin: auto;
             background: var(--container-bg);
@@ -209,11 +232,11 @@
         body[data-log-view="channel"] {
             padding-bottom: 96px;
         }
-        .theme-switch { position: fixed; top: 20px; right: 20px; padding: 10px 18px; border-radius: 30px; border: 1.5px solid var(--primary-color); background: var(--container-bg); color: var(--primary-color); cursor: pointer; font-weight: bold; z-index: 120; }
+        .theme-switch { position: fixed; top: 20px; right: 20px; max-width: calc(100vw - 24px); padding: 10px 18px; border-radius: 30px; border: 1.5px solid var(--primary-color); background: var(--container-bg); color: var(--primary-color); cursor: pointer; font-weight: bold; z-index: 120; }
         .theme-select { min-width: 136px; appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--primary-color) 50%), linear-gradient(135deg, var(--primary-color) 50%, transparent 50%); background-position: calc(100% - 17px) 50%, calc(100% - 11px) 50%; background-size: 6px 6px, 6px 6px; background-repeat: no-repeat; padding-right: 34px; }
-        .view-mode-switch { position: fixed; top: 20px; right: 180px; padding: 10px 18px; border-radius: 30px; border: 1.5px solid var(--primary-color); background: var(--container-bg); color: var(--primary-color); cursor: pointer; font-weight: bold; z-index: 120; }
+        .view-mode-switch { position: fixed; top: 20px; right: 180px; max-width: calc(100vw - 24px); padding: 10px 18px; border-radius: 30px; border: 1.5px solid var(--primary-color); background: var(--container-bg); color: var(--primary-color); cursor: pointer; font-weight: bold; z-index: 120; }
 
-        .mode-switcher { display: inline-flex; background: #eeeae3; padding: 5px; border-radius: 50px; border: 1px solid var(--border-color); margin-right: 20px; }
+        .mode-switcher { display: inline-flex; max-width: 100%; background: #eeeae3; padding: 5px; border-radius: 50px; border: 1px solid var(--border-color); margin-right: 20px; }
         .mode-btn { padding: 10px 25px; border-radius: 25px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; background: transparent; color: var(--text-color); opacity: 0.6; font-size: 15px; }
         .mode-btn.active { background: var(--primary-color); color: white; opacity: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .channel-tabs {
@@ -224,6 +247,8 @@
             position: fixed;
             left: 0;
             right: 0;
+            width: 100%;
+            max-width: 100vw;
             bottom: 0;
             overflow-x: auto;
             overflow-y: hidden;
@@ -274,6 +299,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            overflow-wrap: anywhere;
         }
         .channel-tab-btn.active {
             background: var(--container-bg);
@@ -291,14 +317,21 @@
 
         h1.tool-title { text-align: center; color: var(--primary-color); margin-bottom: 45px; font-size: 32px; letter-spacing: 2px; font-weight: 900; }
         label { display: block; font-weight: bold; margin-bottom: 12px; color: var(--primary-color); font-size: 16px; }
-        input[type="text"], textarea { width: 100%; padding: 15px 20px; border: 1.5px solid var(--border-color); border-radius: 12px; box-sizing: border-box; background-color: color-mix(in srgb, var(--container-bg) 92%, var(--bg-color)); color: var(--text-color); margin-bottom: 15px; font-size: 15px; transition: 0.3s; }
+        input[type="text"], textarea { width: 100%; max-width: 100%; padding: 15px 20px; border: 1.5px solid var(--border-color); border-radius: 12px; box-sizing: border-box; background-color: color-mix(in srgb, var(--container-bg) 92%, var(--bg-color)); color: var(--text-color); margin-bottom: 15px; font-size: 15px; transition: 0.3s; }
+        input[type="file"],
+        select,
+        button {
+            max-width: 100%;
+        }
 
-        .row { display: flex; gap: 40px; margin-bottom: 25px; align-items: flex-start; width: 100%; }
+        .row { display: flex; gap: 40px; margin-bottom: 25px; align-items: flex-start; width: 100%; max-width: 100%; }
         .col-half { flex: 1; min-width: 0; }
 
         .color-pill {
             display: flex;
             align-items: center;
+            max-width: 100%;
+            min-width: 0;
             background: #fff;
             padding: 8px 15px;
             border-radius: 20px; 
@@ -329,9 +362,10 @@
 
         .add-ho-btn { background: var(--container-bg); color: var(--primary-color); border: 1.5px solid var(--primary-color); padding: 8px 20px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 5px; transition: 0.2s; }
 
-        .channel-item { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .channel-item { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 100%; min-width: 0; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
         .channel-name { min-width: 80px; font-weight: bold; color: var(--primary-color); }
         .channel-tag-input { width: 150px !important; margin: 0 !important; padding: 8px 15px !important; }
+        .action-buttons { max-width: 100%; flex-wrap: wrap; }
         .discord-other-setting {
             margin: 14px 0 26px;
             padding: 14px 16px;
@@ -349,6 +383,7 @@
         }
         .discord-other-dropdown {
             position: relative;
+            width: 100%;
             max-width: 420px;
         }
         .discord-other-toggle {
@@ -403,7 +438,7 @@
             opacity: 0.68;
         }
 
-        #output { margin-top: 60px; padding: 50px; border: 1px solid var(--border-color); background: var(--container-bg); display: none; border-radius: 25px; }
+        #output { width: 100%; max-width: 100%; margin-top: 60px; padding: 50px; border: 1px solid var(--border-color); background: var(--container-bg); display: none; border-radius: 25px; }
         .log-item {
             position: relative;
             margin: 0;
@@ -492,6 +527,13 @@
             background: rgba(166, 124, 82, 0.04);
         }
 
+        .log-item.selected-item {
+            outline: 2px solid rgba(230, 126, 34, 0.55);
+            outline-offset: 6px;
+            border-radius: 10px;
+            background: rgba(230, 126, 34, 0.08);
+        }
+
         .log-item.move-group {
             outline: 1px solid rgba(217, 119, 6, 0.22);
             outline-offset: 2px;
@@ -526,6 +568,8 @@
             display: block;
             width: 100%;
             font-size: 15px;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
             [data-mode="edit"] .text-content:focus { background: rgba(230, 126, 34, 0.05); border-radius: 8px; }
 
@@ -533,6 +577,8 @@
             margin-bottom: 1.8em; 
             word-wrap: break-word; 
             font-size: 15px; 
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .log-image-wrap {
@@ -557,6 +603,8 @@
         .other-bubble { 
             width: fit-content; 
             max-width: 75%; 
+            overflow-wrap: anywhere;
+            word-break: break-word;
             margin-left: auto; 
             padding: 15px 25px; 
             border-radius: 22px 22px 4px 22px; 
@@ -567,6 +615,7 @@
             background: var(--bar-bg); 
         }
         .block-styled { 
+            max-width: 100%;
             padding: 30px 35px; 
             border-radius: 15px; 
             margin: 0; 
@@ -619,6 +668,8 @@
             font-size: 15px !important; /* 調整成跟內文一樣大 */
             line-height: 1.6 !important;
             font-weight: normal;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .info-line strong {
@@ -630,11 +681,11 @@
 
         
 
-        .file-upload-wrapper { text-align: center; padding: 55px 30px; border: 2.5px dashed var(--border-color); border-radius: 20px; background: rgba(0,0,0,0.01); margin: 40px 0; transition: 0.3s; }
+        .file-upload-wrapper { width: 100%; max-width: 100%; text-align: center; padding: 55px 30px; border: 2.5px dashed var(--border-color); border-radius: 20px; background: rgba(0,0,0,0.01); margin: 40px 0; transition: 0.3s; }
         .file-upload-wrapper label { font-size: 18px; margin-bottom: 25px; color: var(--primary-color); opacity: 0.9; }
 
         .generate-btn { background-color: var(--primary-color); color: white; border: none; padding: 18px; border-radius: 15px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; margin-top: 10px; transition: 0.3s; box-shadow: 0 6px 15px rgba(166, 124, 82, 0.2); }
-        .action-btn { background: #8fa4b3; color: white; padding: 15px 30px; border: none; border-radius: 15px; cursor: pointer; font-weight: bold; font-size: 16px; height: 60px; transition: 0.3s; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.8; }
+        .action-btn { max-width: 100%; background: #8fa4b3; color: white; padding: 15px 30px; border: none; border-radius: 15px; cursor: pointer; font-weight: bold; font-size: 16px; height: 60px; transition: 0.3s; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.8; white-space: normal; }
         
         .floating-boundary-hint {
             position: absolute;
@@ -725,6 +776,8 @@
             padding: 0.1em 0.35em;
             border-radius: 4px;
             background: rgba(127, 127, 127, 0.16);
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .md-code-block {
@@ -735,7 +788,10 @@
             padding: 12px 14px;
             border-radius: 8px;
             background: rgba(127, 127, 127, 0.14);
+            max-width: 100%;
             overflow-x: auto;
+            overflow-wrap: normal;
+            word-break: normal;
         }
 
         .md-list {
@@ -810,6 +866,7 @@
             left: 0;
             top: 140px;
             width: 250px;
+            max-width: calc(100vw - 12px);
             max-height: calc(100vh - 180px);
             background: var(--container-bg);
             border: 1px solid var(--border-color);
@@ -856,6 +913,8 @@
             font-size: 13px;
             line-height: 1.5;
             margin-bottom: 4px;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .toc-item:hover {
@@ -880,6 +939,7 @@
             display: flex;
             gap: 12px;
             align-items: center;
+            max-width: 100%;
             margin: 0 0 10px 0;
             padding: 10px 12px;
             border: 1px solid var(--border-color);
@@ -1000,10 +1060,14 @@
             }
 
             .container {
+                width: 100%;
+                max-width: 100%;
                 padding: 36px;
             }
 
             #output {
+                width: 100%;
+                max-width: 100%;
                 padding: 36px;
             }
 
@@ -1019,11 +1083,15 @@
             }
 
             .container {
+                width: 100%;
+                max-width: 100%;
                 padding: 26px;
                 border-radius: 16px;
             }
 
             #output {
+                width: 100%;
+                max-width: 100%;
                 padding: 28px;
                 border-radius: 18px;
             }
@@ -1045,11 +1113,13 @@
             }
 
             .mode-switcher {
+                max-width: 100%;
                 margin-right: 0;
             }
 
             .view-mode-switch {
                 right: 160px;
+                max-width: calc(100vw - 24px);
             }
 
             #character-colors {
@@ -1079,11 +1149,15 @@
             }
 
             .container {
+                width: 100%;
+                max-width: 100%;
                 padding: 16px;
                 border-radius: 14px;
             }
 
             #output {
+                width: 100%;
+                max-width: 100%;
                 margin-top: 36px;
                 padding: 16px;
                 border-radius: 14px;
@@ -1112,21 +1186,34 @@
             .theme-switch {
                 top: 12px;
                 right: 12px;
+                max-width: calc(50vw - 18px);
                 padding: 8px 12px;
                 font-size: 13px;
+            }
+
+            .theme-select {
+                min-width: 0;
+                width: calc(50vw - 18px);
+                padding-left: 10px;
+                padding-right: 28px;
             }
 
             .mode-switcher {
                 width: 100%;
+                max-width: 100%;
                 justify-content: center;
             }
 
             .view-mode-switch {
-                top: 58px;
+                top: 12px;
                 right: 12px;
-                width: auto;
+                transform: translateX(calc(-50vw + 6px));
+                width: calc(50vw - 18px);
+                max-width: calc(50vw - 18px);
                 padding: 8px 12px;
                 font-size: 13px;
+                white-space: normal;
+                line-height: 1.35;
             }
 
             .mode-btn {
@@ -1136,6 +1223,8 @@
             }
 
             .channel-tabs {
+                width: 100%;
+                max-width: 100vw;
                 padding-left: 10px;
                 padding-right: 10px;
             }
@@ -1149,6 +1238,17 @@
             .action-buttons {
                 flex-direction: column;
                 align-items: stretch !important;
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .item-meta-editor {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .color-pill {
+                flex-wrap: wrap;
             }
 
             .action-btn,
@@ -1190,6 +1290,7 @@
             .toc-panel {
                 top: 112px;
                 width: min(82vw, 260px);
+                max-width: calc(100vw - 12px);
                 max-height: calc(100vh - 145px);
             }
 
@@ -1203,6 +1304,7 @@
                 top: -14px;
                 transform: translateY(-100%);
                 flex-direction: row;
+                max-width: calc(100vw - 24px);
                 gap: 6px;
             }
 
@@ -1247,14 +1349,22 @@
     <h1 class="tool-title no-print">CoC TRPG 團錄整理工具</h1>
     
     <div class="input-section no-print">
-        <div class="row"><div class="col-half"><label>劇本名</label><input type="text" id="scenario-name" placeholder="請輸入標題" oninput="saveToLocal()"></div></div>
+        <div class="row"><div class="col-half"><label>劇本名</label><input type="text" id="scenario-name" placeholder="請輸入標題" oninput="saveToLocal(); liveUpdateHeader();"></div></div>
         <div class="row">
             <div class="col-half">
                 <label>簡介圖片 (貼上)</label>
                 <div id="image-preview" style="width:100%; height:180px; border:2.5px dashed var(--secondary-color); display:flex; align-items:center; justify-content:center; cursor:pointer; border-radius:15px; background:rgba(0,0,0,0.02);" onclick="document.getElementById('image-input').click()"><span>點擊或貼上</span></div>
                 <input type="file" id="image-input" accept="image/*" style="display:none" onchange="handleFileSelect(this)">
+                <button type="button" class="mini-action-btn" onclick="clearIntroImage(event)" style="margin-top:10px;">&#28165;&#38500;&#22294;&#29255;</button>
             </div>
-            <div class="col-half"><label>簡介內容</label><textarea id="intro-text" style="height: 180px;" oninput="saveToLocal()"></textarea></div>
+            <div class="col-half">
+                <label>簡介內容</label>
+                <textarea id="intro-text" style="height: 180px;" oninput="saveToLocal(); liveUpdateHeader();"></textarea>
+                <label class="inline-checkbox" style="justify-content:flex-start; margin-top:4px;">
+                    <input type="checkbox" id="show-intro-section" checked onchange="liveUpdateHeader(); saveToLocal();">
+                    &#39023;&#31034;&#31777;&#20171;&#38913;&#38754;
+                </label>
+            </div>
         </div>
         
         <div class="row">
@@ -1356,6 +1466,8 @@
     let discordOtherChannels = [];
     let hoList = [];
     let activeIndex = null;
+    let selectedIndices = new Set();
+    let selectionAnchorIndex = null;
     let moveSourceIndex = null;
     let moveRangeStart = null;
     let moveRangeEnd = null;
@@ -1449,27 +1561,91 @@
 
    
 
+    function getSelectedLogIndices(fallbackIndex = null) {
+        const indices = [...selectedIndices]
+            .filter(index => Number.isInteger(index) && index >= 0 && index < rawLogData.length);
+
+        if (!indices.length && fallbackIndex !== null && fallbackIndex !== undefined) {
+            indices.push(fallbackIndex);
+        }
+
+        return [...new Set(indices)].sort((a, b) => b - a);
+    }
+
+    function clearLogSelection() {
+        selectedIndices.clear();
+    }
+
+    function setSelectionAnchor(index) {
+        if (Number.isInteger(index) && index >= 0 && index < rawLogData.length) {
+            selectionAnchorIndex = index;
+        }
+    }
+
+    function getVisibleRangeIndices(startIndex, endIndex) {
+        const visibleIndices = getRenderableLogEntries().map(entry => entry.index);
+        const startPos = visibleIndices.indexOf(startIndex);
+        const endPos = visibleIndices.indexOf(endIndex);
+
+        if (startPos >= 0 && endPos >= 0) {
+            const from = Math.min(startPos, endPos);
+            const to = Math.max(startPos, endPos);
+            return visibleIndices.slice(from, to + 1);
+        }
+
+        const from = Math.min(startIndex, endIndex);
+        const to = Math.max(startIndex, endIndex);
+        const indices = [];
+        for (let i = from; i <= to; i++) {
+            if (rawLogData[i]) indices.push(i);
+        }
+        return indices;
+    }
+
+    function renderSelectionState() {
+        document.querySelectorAll('#out-content .log-item').forEach(el => {
+            const index = Number(el.dataset.index);
+            el.classList.toggle('selected-item', selectedIndices.has(index));
+            el.classList.toggle('active-item', index === activeIndex);
+        });
+    }
+
     function deleteLogItem(index) {
-    if (confirm("確定要刪除這條訊息嗎？")) {
-        rawLogData.splice(index, 1);
+        const indices = getSelectedLogIndices(index);
+        if (!indices.length) return;
 
-        if (activeIndex === index) {
-            activeIndex = null;
-        } else if (activeIndex > index) {
-            activeIndex--;
+        const isMultiDelete = indices.length > 1;
+        const firstDeletedIndex = Math.min(...indices);
+
+        const message = isMultiDelete
+            ? '\u78ba\u5b9a\u8981\u522a\u9664\u9078\u53d6\u7684 ' + indices.length + ' \u689d\u8a0a\u606f\u55ce\uff1f'
+            : '\u78ba\u5b9a\u8981\u522a\u9664\u9019\u689d\u8a0a\u606f\u55ce\uff1f';
+
+        if (!confirm(message)) return;
+
+        indices.forEach(deleteIndex => {
+            rawLogData.splice(deleteIndex, 1);
+        });
+
+        activeIndex = null;
+        selectionAnchorIndex = null;
+        moveSourceIndex = null;
+        moveMode = false;
+        moveRangeStart = null;
+        moveRangeEnd = null;
+        tocEditIndex = null;
+        clearLogSelection();
+
+        if (isMultiDelete) {
+            liveRenderLog();
+            const targetIndex = Math.min(firstDeletedIndex, rawLogData.length - 1);
+            scrollToLogIndex(targetIndex);
+        } else {
+            rerenderKeepViewport();
         }
 
-        if (moveSourceIndex === index) {
-            moveSourceIndex = null;
-            moveMode = false;
-        } else if (moveSourceIndex > index) {
-            moveSourceIndex--;
-        }
-
-        rerenderKeepViewport();
         saveToLocal({ rawLogChanged: true });
     }
-}
 
     
 
@@ -1499,7 +1675,8 @@
             const reader = new FileReader();
             reader.onload = ev => {
                 // 將圖片預覽顯示在對應區塊
-                document.getElementById('image-preview').innerHTML = `<img src="${ev.target.result}" style="max-width:100%; max-height:100%; border-radius:12px;">`;
+                setIntroImagePreview(ev.target.result);
+                if(document.getElementById('output').style.display === 'block') liveUpdateHeader();
                 // 同步儲存到本地空間
                 saveToLocal({ introImageChanged: true });
             };
@@ -1926,6 +2103,35 @@
         return src;
     }
 
+    function getIntroImagePlaceholderHTML() {
+        return '<span>&#40670;&#25802;&#25110;&#36028;&#19978;</span>';
+    }
+
+    function setIntroImagePreview(src = '') {
+        const preview = document.getElementById('image-preview');
+        if (!preview) return;
+        preview.innerHTML = src
+            ? `<img src="${src}" style="max-width:100%; max-height:100%; border-radius:12px;">`
+            : getIntroImagePlaceholderHTML();
+    }
+
+    function isIntroSectionVisible() {
+        return document.getElementById('show-intro-section')?.checked !== false;
+    }
+
+    function clearIntroImage(event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        setIntroImagePreview('');
+        const input = document.getElementById('image-input');
+        if (input) input.value = '';
+        clearIntroImageFromIndexedDB().catch(err => console.error('IndexedDB intro image clear failed:', err));
+        liveUpdateHeader();
+        saveToLocal({ introImageChanged: true });
+    }
+
     function queueIntroImageSave() {
         if (!introImageDirty) return;
         clearTimeout(introImageSaveTimer);
@@ -1957,6 +2163,7 @@
         return {
             scenarioName: document.getElementById('scenario-name').value,
             introText: document.getElementById('intro-text').value,
+            showIntroSection: document.getElementById('show-intro-section')?.checked !== false,
             kpName: document.getElementById('kp-name').value,
             hoList,
             theme: document.body.getAttribute('data-theme'),
@@ -2012,6 +2219,8 @@
         }
         document.getElementById('scenario-name').value = data.scenarioName || '';
         document.getElementById('intro-text').value = data.introText || '';
+        const showIntroSectionEl = document.getElementById('show-intro-section');
+        if (showIntroSectionEl) showIntroSectionEl.checked = data.showIntroSection !== false;
         document.getElementById('kp-name').value = data.kpName || '';
         hoList = data.hoList || [];
         renderHOEditor();
@@ -2048,7 +2257,9 @@
             }
         }
         if (loadedIntroImageSrc) {
-            document.getElementById('image-preview').innerHTML = `<img src="${loadedIntroImageSrc}" style="max-width:100%; max-height:100%; border-radius:12px;">`;
+            setIntroImagePreview(loadedIntroImageSrc);
+        } else {
+            setIntroImagePreview('');
         }
 
         let loadedRawLogData = [];
@@ -2126,6 +2337,8 @@
 
         if (mode !== 'edit') {
             activeIndex = null;
+            clearLogSelection();
+            selectionAnchorIndex = null;
             moveSourceIndex = null;
             moveRangeStart = null;
             moveRangeEnd = null;
@@ -2177,6 +2390,8 @@
         rememberLogScrollPosition();
         logViewMode = mode;
         activeIndex = null;
+        clearLogSelection();
+        selectionAnchorIndex = null;
         tocEditIndex = null;
         ensureActiveChannelTab();
         updateLogViewModeButtons();
@@ -2197,6 +2412,8 @@
         rememberLogScrollPosition();
         activeChannelTab = ch;
         activeIndex = null;
+        clearLogSelection();
+        selectionAnchorIndex = null;
         tocEditIndex = null;
         liveRenderLog();
         restoreLogScrollPosition();
@@ -2855,6 +3072,10 @@
                 wrap.classList.add('active-item');
             }
 
+            if (currentMode === 'edit' && selectedIndices.has(index)) {
+                wrap.classList.add('selected-item');
+            }
+
             if (
                 currentMode === 'edit' &&
                 moveMode &&
@@ -2975,11 +3196,13 @@
                 </div>
             ` : '';
            
+            const selectedCount = selectedIndices.size;
+            const deleteTitle = selectedCount > 1 ? `刪除選取的 ${selectedCount} 條` : '刪除';
             const editUI = (currentMode === 'edit' && index === activeIndex) ? 
             `<div class="edit-tools">
                 <button onclick="event.stopPropagation(); toggleCenter(${index})" title="置中">≡</button>
                 <button onpointerdown="startMoveItemDirect(event, ${index})" title="移動">↕</button>
-                <button onclick="event.stopPropagation(); deleteLogItem(${index})" title="刪除">🗑</button>
+                <button onclick="event.stopPropagation(); deleteLogItem(${index})" title="${deleteTitle}">🗑</button>
                 <button onclick="event.stopPropagation(); addLogItemBelow(${index})" title="新增">＋</button>
                 <button onclick="event.stopPropagation(); addImageBelow(${index})" title="新增圖片">🖼</button>
                 <button onclick="event.stopPropagation(); toggleTOCEditor(${index})" title="目錄" style="${tocMarked ? 'background: rgba(166,124,82,0.15); border-color: var(--primary-color);' : ''}">⌖</button>
@@ -3034,13 +3257,62 @@
             lastRenderedType = renderType;
         });
 
-        checkMerging();
-        renderFloatingBoundaryHint();
-        renderTOC();
-    }
+            checkMerging();
+            renderFloatingBoundaryHint();
+            renderTOC();
+            updateActiveEditToolsPosition();
+        }
+
 
 
    
+    let editToolsPositionQueued = false;
+
+    function updateActiveEditToolsPosition() {
+        if (document.body.getAttribute('data-mode') !== 'edit') return;
+
+        const tools = document.querySelector('#out-content .log-item.active-item .edit-tools');
+        if (!tools) return;
+
+        const item = tools.closest('.log-item');
+        if (!item) return;
+
+        const itemRect = item.getBoundingClientRect();
+        const isMobile = window.matchMedia('(max-width: 600px)').matches;
+        const viewportTop = isMobile ? 72 : 90;
+        const viewportBottom = window.innerHeight - (isMobile ? 76 : 90);
+        const targetTop = Math.min(
+            viewportBottom,
+            Math.max(viewportTop, window.innerHeight * 0.42)
+        );
+
+        tools.style.position = 'fixed';
+        tools.style.top = `${targetTop}px`;
+        tools.style.transform = 'none';
+        tools.style.zIndex = '240';
+
+        if (isMobile) {
+            tools.style.left = 'auto';
+            tools.style.right = '12px';
+        } else {
+            const nextLeft = Math.max(12, itemRect.left - 58);
+            tools.style.left = `${nextLeft}px`;
+            tools.style.right = 'auto';
+        }
+    }
+
+    function queueEditToolsPositionUpdate() {
+        if (editToolsPositionQueued) return;
+
+        editToolsPositionQueued = true;
+        requestAnimationFrame(() => {
+            editToolsPositionQueued = false;
+            updateActiveEditToolsPosition();
+        });
+    }
+
+    window.addEventListener('scroll', queueEditToolsPositionUpdate, { passive: true });
+    window.addEventListener('resize', queueEditToolsPositionUpdate);
 
     function toggleCenter(index) {
         const item = rawLogData[index];
@@ -3209,11 +3481,17 @@
 
     function liveUpdateHeader() {
         if(document.getElementById('output').style.display !== 'block') return;
+        const showIntroSection = isIntroSectionVisible();
         const sName = document.getElementById('scenario-name').value.trim(), titleEl = document.getElementById('out-title');
-        titleEl.innerText = sName || ''; titleEl.style.display = sName ? 'block' : 'none';
-        document.getElementById('out-intro').innerText = document.getElementById('intro-text').value;
+        titleEl.innerText = sName || ''; titleEl.style.display = (showIntroSection && sName) ? 'block' : 'none';
+        const introText = document.getElementById('intro-text').value;
+        document.getElementById('out-intro').innerText = introText;
+        const introWrapper = document.getElementById('out-intro-wrapper');
+        if (introWrapper) introWrapper.style.display = (showIntroSection && introText.trim()) ? 'block' : 'none';
         const img = document.getElementById('image-preview').querySelector('img');
-        document.getElementById('out-img').innerHTML = img ? `<img src="${img.src}" style="max-width:50%; border-radius:12px;">` : '';
+        const outImg = document.getElementById('out-img');
+        outImg.innerHTML = (showIntroSection && img) ? `<img src="${img.src}" style="max-width:50%; border-radius:12px;">` : '';
+        outImg.style.display = (showIntroSection && img) ? 'block' : 'none';
         let infoBarHTML = '';
         const kp = document.getElementById('kp-name').value.trim();
         // 讀取剛剛新增的顏色選擇器的值
@@ -3226,13 +3504,13 @@
             if(item.ho || item.pl) infoBarHTML += `<div class="info-line" style="color:${item.color}"><strong style="margin-right:12px; min-width:40px;">${item.ho}</strong><span>${item.pl}</span></div>`;
         });
         const infoBarEl = document.getElementById('out-info-bar');
-        infoBarEl.innerHTML = infoBarHTML; infoBarEl.style.display = infoBarHTML ? 'block' : 'none';
+        infoBarEl.innerHTML = infoBarHTML; infoBarEl.style.display = (showIntroSection && infoBarHTML) ? 'block' : 'none';
     }
 
     function downloadHTMLLegacy() {
         // TODO: 下載 HTML 前需將 blob URL 圖片轉成 base64，否則離開本頁後圖片會失效。
         const title = document.getElementById('scenario-name').value || 'Log', content = document.getElementById('output').innerHTML, style = document.querySelector('style').innerHTML, currentTheme = document.body.getAttribute('data-theme');
-        const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>${style} #output{display:block;border:none;padding:20px;} .no-print { display:none !important; } .log-item { cursor: default; } .edit-btn, .mode-switcher { display: none !important; } </style></head><body data-theme="${currentTheme}"><div class="container">${content}</div></body></html>`;
+        const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title><style>${style} #output{display:block;border:none;padding:20px;} .no-print { display:none !important; } .log-item { cursor: default; } .edit-btn, .mode-switcher { display: none !important; } </style></head><body data-theme="${currentTheme}"><div class="container">${content}</div></body></html>`;
         const blob = new Blob([fullHTML], { type: 'text/html' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${title}.html`; a.click();
     }
@@ -3327,14 +3605,18 @@
         const prevLogViewMode = logViewMode;
         const prevActiveChannelTab = activeChannelTab;
         const prevActiveIndex = activeIndex;
+        const prevSelectionAnchorIndex = selectionAnchorIndex;
         const prevTocEditIndex = tocEditIndex;
+        const prevSelectedIndices = new Set(selectedIndices);
         const prevOutputDisplay = document.getElementById('output').style.display;
 
         rawLogData = exportItems;
         document.getElementById('output').style.display = 'block';
         logViewMode = 'mixed';
         activeIndex = null;
+        selectionAnchorIndex = null;
         tocEditIndex = null;
+        clearLogSelection();
         liveUpdateHeader();
         liveRenderLog();
         const html = document.getElementById('output').innerHTML;
@@ -3343,7 +3625,9 @@
         logViewMode = prevLogViewMode;
         activeChannelTab = prevActiveChannelTab;
         activeIndex = prevActiveIndex;
+        selectionAnchorIndex = prevSelectionAnchorIndex;
         tocEditIndex = prevTocEditIndex;
+        selectedIndices = prevSelectedIndices;
         document.getElementById('output').style.display = prevOutputDisplay;
         liveRenderLog();
         return html;
@@ -3383,7 +3667,7 @@
         const tocHTML = buildExportTOCHTML();
         const channelTabsHTML = shouldExportChannelTabs ? buildExportChannelTabsHTML(getChannelSummaries()) : '';
         const exportStyle = `#output{display:block;border:none;padding:20px;} .no-print{display:none !important;} .log-item{cursor:default;} .edit-btn,.edit-tools,.mode-switcher,.item-meta-editor,.toc-inline-editor{display:none !important;} .export-channel-tabs{display:flex !important;} .export-toc-panel{display:block !important;} ${shouldExportChannelTabs ? 'body{padding-bottom:96px;}' : ''}`;
-        const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(exportTitle)}</title><style>${style}${exportStyle}</style></head><body data-theme="${currentTheme}">${tocHTML}<div class="container"><div id="output">${content}</div></div>${channelTabsHTML}${buildToolExportDataScript(exportLogData)}${buildExportInteractiveScript()}</body></html>`;
+        const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHtml(exportTitle)}</title><style>${style}${exportStyle}</style></head><body data-theme="${currentTheme}">${tocHTML}<div class="container"><div id="output">${content}</div></div>${channelTabsHTML}${buildToolExportDataScript(exportLogData)}${buildExportInteractiveScript()}</body></html>`;
         const blob = new Blob([fullHTML], { type: 'text/html' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${exportTitle}.html`; a.click();
         } finally {
@@ -3395,7 +3679,7 @@
     }
 
     function rgbToHex(rgb) { if (!rgb || !rgb.startsWith('rgb')) return rgb; const res = rgb.match(/\d+/g).slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')); return `#${res.join('')}`; }
-    function handleFileSelect(i) { if (i.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:100%; border-radius:12px;">`; if(document.getElementById('output').style.display === 'block') liveUpdateHeader(); saveToLocal({ introImageChanged: true }); }; r.readAsDataURL(i.files[0]); } }
+    function handleFileSelect(i) { if (i.files[0]) { const r = new FileReader(); r.onload = e => { setIntroImagePreview(e.target.result); if(document.getElementById('output').style.display === 'block') liveUpdateHeader(); saveToLocal({ introImageChanged: true }); }; r.readAsDataURL(i.files[0]); } }
 
     function detectLogSource(htmlText) {
         const text = String(htmlText || '');
@@ -3434,6 +3718,8 @@
         const settings = payload.settings || {};
         document.getElementById('scenario-name').value = settings.scenarioName || '';
         document.getElementById('intro-text').value = settings.introText || '';
+        const showIntroSectionEl = document.getElementById('show-intro-section');
+        if (showIntroSectionEl) showIntroSectionEl.checked = settings.showIntroSection !== false;
         document.getElementById('kp-name').value = settings.kpName || '';
         hoList = Array.isArray(settings.hoList) ? settings.hoList : [];
         renderHOEditor();
@@ -3453,10 +3739,7 @@
         const globalShowTimeEl = document.getElementById('global-show-time');
         if (globalShowTimeEl) globalShowTimeEl.checked = globalShowTime;
 
-        const preview = document.getElementById('image-preview');
-        preview.innerHTML = settings.imgSrc
-            ? `<img src="${settings.imgSrc}" style="max-width:100%; max-height:100%; border-radius:12px;">`
-            : '<span>點擊或貼上</span>';
+        setIntroImagePreview(settings.imgSrc || '');
 
         charColorMap = settings.charColorMap || {};
         detectedCharColorMap = settings.detectedCharColorMap || {};
@@ -3479,7 +3762,7 @@
         switchMode(settings.mode || 'view');
         liveUpdateHeader();
         liveRenderLog();
-        saveToLocal({ rawLogChanged: true, introImageChanged: !!settings.imgSrc });
+        saveToLocal({ rawLogChanged: true, introImageChanged: true });
     }
 
     function getDiscordMeta(doc) {
@@ -3866,6 +4149,9 @@
         channelOrder = [];
         discordOtherChannels = [];
         rawLogData = [];
+        activeIndex = null;
+        clearLogSelection();
+        selectionAnchorIndex = null;
         const currentTheme = getValidTheme(document.body.getAttribute('data-theme'));
         charColorMap["KP（空白）"] = THEME_PRESETS[currentTheme].kpText;
     }
@@ -4373,7 +4659,28 @@
         const index = Number(logItem.dataset.index);
         if (Number.isNaN(index)) return;
 
-        // 已經在編輯同一塊，就不要重進
+        if (e.shiftKey) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (editingIndex !== null) {
+                commitEditing({ rerender: false });
+            }
+
+            const anchorIndex = (
+                selectionAnchorIndex !== null &&
+                rawLogData[selectionAnchorIndex]
+            ) ? selectionAnchorIndex : ((activeIndex !== null && rawLogData[activeIndex]) ? activeIndex : index);
+
+            selectedIndices = new Set(getVisibleRangeIndices(anchorIndex, index));
+            activeIndex = index;
+            setSelectionAnchor(anchorIndex);
+            tocEditIndex = null;
+            renderSelectionState();
+            queueEditToolsPositionUpdate();
+            return;
+        }
+
         if (editingIndex === index) {
             const clickedEditableText = e.target.closest('.text-content[contenteditable="true"]');
             const clickedEditSurface = e.target.closest('.edit-tools, .item-meta-editor, .toc-inline-editor');
@@ -4397,15 +4704,21 @@
             commitEditing({ rerender: false });
         }
 
+        clearLogSelection();
+
         if (activeIndex !== index) {
             activeIndex = index;
+            setSelectionAnchor(index);
             liveRenderLog();
 
             requestAnimationFrame(() => {
                 makeEditable(index);
+                updateActiveEditToolsPosition();
             });
         } else {
+            setSelectionAnchor(index);
             makeEditable(index);
+            updateActiveEditToolsPosition();
         }
     });
 
@@ -4534,6 +4847,20 @@
         el.scrollIntoView({
             behavior: 'smooth',
             block: 'center'
+        });
+    }
+
+    function scrollToLogIndex(index) {
+        if (!Number.isInteger(index) || index < 0) return;
+
+        requestAnimationFrame(() => {
+            const el = document.querySelector(`#out-content .log-item[data-index="${index}"]`);
+            if (!el) return;
+
+            el.scrollIntoView({
+                block: 'start',
+                inline: 'nearest'
+            });
         });
     }
 
@@ -4711,8 +5038,32 @@
 
 
     document.addEventListener('keydown', function(e) {
+        if (
+            document.body.getAttribute('data-mode') === 'edit' &&
+            (e.key === 'Delete' || e.key === 'Backspace') &&
+            selectedIndices.size > 0 &&
+            editingIndex === null &&
+            (!(e.target instanceof Element) || !e.target.closest('input, textarea, [contenteditable="true"]'))
+        ) {
+            e.preventDefault();
+            deleteLogItem(activeIndex);
+            return;
+        }
+
         if (e.key === 'Escape' && moveMode) {
             cancelMoveMode();
+            return;
+        }
+
+        if (
+            e.key === 'Escape' &&
+            document.body.getAttribute('data-mode') === 'edit' &&
+            selectedIndices.size > 0
+        ) {
+            clearLogSelection();
+            selectionAnchorIndex = activeIndex;
+            renderSelectionState();
+            queueEditToolsPositionUpdate();
         }
     });
 
@@ -4744,6 +5095,8 @@
         }
 
         activeIndex = index;
+        clearLogSelection();
+        setSelectionAnchor(index);
         startMoveItem(index);
     }
 
