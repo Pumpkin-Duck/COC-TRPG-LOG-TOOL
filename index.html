@@ -592,6 +592,16 @@
             border-radius: 10px;
             display: inline-block;
         }
+        .missing-local-asset {
+            display: inline-block;
+            padding: 12px 16px;
+            border: 1px dashed var(--border-color);
+            border-radius: 10px;
+            color: var(--text-color);
+            background: rgba(127, 127, 127, 0.08);
+            opacity: 0.72;
+            font-size: 13px;
+        }
 
         
         .char-name-label { 
@@ -1453,8 +1463,9 @@
     const STORAGE_KEY = 'coc_trpg_log_tool_settings_v1';
     const LEGACY_STORAGE_KEY = 'trpg_log_v44';
     const DB_NAME = 'coc_trpg_log_tool_db';
-    const DB_VERSION = 1;
+    const DB_VERSION = 2;
     const LOG_STORE_NAME = 'logs';
+    const ASSET_STORE_NAME = 'assets';
     const EXPORT_DATA_SCRIPT_ID = 'coc-trpg-log-export-data';
 
     let charColorMap = {};
@@ -1483,6 +1494,8 @@
     let globalShowTime = false;
     let globalTimeDisplayMode = 'none';
     let activeBlobUrls = [];
+    let assetObjectUrlCache = new Map();
+    let pendingAssetSavePromises = [];
 
     let hoverInsertIndex = null;
     let hoverInsertTop = null;
@@ -1999,6 +2012,9 @@
                 if (!db.objectStoreNames.contains(LOG_STORE_NAME)) {
                     db.createObjectStore(LOG_STORE_NAME, { keyPath: 'id' });
                 }
+                if (!db.objectStoreNames.contains(ASSET_STORE_NAME)) {
+                    db.createObjectStore(ASSET_STORE_NAME, { keyPath: 'id' });
+                }
             };
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
@@ -2011,7 +2027,7 @@
             const tx = db.transaction(LOG_STORE_NAME, 'readwrite');
             tx.objectStore(LOG_STORE_NAME).put({
                 id: 'current',
-                rawLogData: Array.isArray(data) ? data : [],
+                rawLogData: getPersistableRawLogData(data),
                 updatedAt: Date.now()
             });
             tx.oncomplete = () => { db.close(); resolve(); };
@@ -2037,6 +2053,148 @@
             tx.oncomplete = () => { db.close(); resolve(); };
             tx.onerror = () => { const error = tx.error; db.close(); reject(error); };
         });
+    }
+
+    function getPersistableRawLogData(data) {
+        return JSON.parse(JSON.stringify(Array.isArray(data) ? data : [])).map(item => {
+            if (item?.type === 'image' && isBlobUrl(item.src)) {
+                item.originalBlobSrc = item.originalBlobSrc || item.src;
+                item.src = '';
+                item.isBlobUrl = false;
+                if (!item.assetId) item.missingLocalAsset = true;
+            }
+            return item;
+        });
+    }
+
+    function makeAssetIdForFile(file) {
+        const source = [
+            file?.webkitRelativePath || file?.name || 'asset',
+            file?.size || 0,
+            file?.lastModified || 0,
+            file?.type || ''
+        ].join('|');
+        let hash = 5381;
+        for (let i = 0; i < source.length; i++) {
+            hash = ((hash << 5) + hash) + source.charCodeAt(i);
+            hash >>>= 0;
+        }
+        return `asset_${hash.toString(36)}_${file?.size || 0}`;
+    }
+
+    async function saveAssetBlobToIndexedDB(id, blob, meta = {}) {
+        if (!id || !blob) return;
+        const db = await openLogDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(ASSET_STORE_NAME, 'readwrite');
+            tx.objectStore(ASSET_STORE_NAME).put({
+                id,
+                blob,
+                name: meta.name || '',
+                type: meta.type || blob.type || '',
+                size: meta.size || blob.size || 0,
+                assetPath: meta.assetPath || '',
+                createdAt: meta.createdAt || Date.now()
+            });
+            tx.oncomplete = () => { db.close(); resolve(); };
+            tx.onerror = () => { const error = tx.error; db.close(); reject(error); };
+        });
+    }
+
+    async function loadAssetBlobFromIndexedDB(id) {
+        if (!id) return null;
+        const db = await openLogDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(ASSET_STORE_NAME, 'readonly');
+            const request = tx.objectStore(ASSET_STORE_NAME).get(id);
+            request.onsuccess = () => { db.close(); resolve(request.result?.blob || null); };
+            request.onerror = () => { const error = request.error || tx.error; db.close(); reject(error); };
+        });
+    }
+
+    function queueAssetSave(file, assetId) {
+        if (!file || !assetId) return;
+        const promise = saveAssetBlobToIndexedDB(assetId, file, {
+            name: file.name || '',
+            type: file.type || '',
+            size: file.size || 0,
+            assetPath: file.webkitRelativePath || file.name || ''
+        }).catch(err => {
+            console.warn('Failed to save local asset:', file.webkitRelativePath || file.name, err);
+            throw err;
+        });
+        pendingAssetSavePromises.push(promise);
+    }
+
+    async function drainPendingAssetSaves() {
+        const pending = pendingAssetSavePromises;
+        pendingAssetSavePromises = [];
+        if (!pending.length) return { failedCount: 0 };
+        const results = await Promise.allSettled(pending);
+        return { failedCount: results.filter(result => result.status === 'rejected').length };
+    }
+
+    async function blobToDataUrl(blob) {
+        return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    async function getObjectUrlForAsset(assetId) {
+        if (!assetId) return '';
+        if (assetObjectUrlCache.has(assetId)) return assetObjectUrlCache.get(assetId);
+        const blob = await loadAssetBlobFromIndexedDB(assetId);
+        if (!blob) return '';
+        const url = URL.createObjectURL(blob);
+        assetObjectUrlCache.set(assetId, url);
+        activeBlobUrls.push(url);
+        return url;
+    }
+
+    async function migrateLegacyBlobImageItems(items) {
+        if (!Array.isArray(items)) return [];
+        let didChange = false;
+
+        for (const item of items) {
+            if (item?.type !== 'image' || !isBlobUrl(item.src)) continue;
+
+            try {
+                const response = await fetch(item.src);
+                const blob = await response.blob();
+                const assetId = item.assetId || `legacy_asset_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+                await saveAssetBlobToIndexedDB(assetId, blob, {
+                    name: item.alt || item.assetPath || 'legacy-image',
+                    type: blob.type,
+                    size: blob.size,
+                    assetPath: item.assetPath || item.originalSrc || ''
+                });
+                item.assetId = assetId;
+                item.isLocalAsset = true;
+                item.src = '';
+                item.isBlobUrl = false;
+                item.missingLocalAsset = false;
+            } catch (err) {
+                item.originalBlobSrc = item.originalBlobSrc || item.src;
+                item.src = '';
+                item.isBlobUrl = false;
+                item.missingLocalAsset = true;
+                item.missingLocalAssetMessage = '本機圖片已失效，請重新匯入 Discord 資料夾';
+            }
+            didChange = true;
+        }
+
+        if (didChange) {
+            try {
+                await saveRawLogDataToIndexedDB(items);
+            } catch (err) {
+                console.error('Migrated rawLogData save failed:', err);
+            }
+        }
+
+        return items;
     }
 
     async function saveIntroImageToIndexedDB(imgSrc) {
@@ -2280,6 +2438,7 @@
         }
 
         if (Array.isArray(loadedRawLogData) && loadedRawLogData.length) {
+            loadedRawLogData = await migrateLegacyBlobImageItems(loadedRawLogData);
             rawLogData = loadedRawLogData;
             renderConfigPanel();
             if (data.isOutputVisible) {
@@ -3048,6 +3207,31 @@
         selection.addRange(range);
     }
 
+    function hydrateLocalAssetImages(root) {
+        root.querySelectorAll('img.log-image[data-asset-id]').forEach(img => {
+            const assetId = img.dataset.assetId;
+            if (!assetId || img.hasAttribute('src')) return;
+
+            getObjectUrlForAsset(assetId).then(url => {
+                if (url) {
+                    img.src = url;
+                    return;
+                }
+
+                const wrap = img.closest('.log-image-wrap');
+                if (wrap) {
+                    wrap.innerHTML = '<div class="missing-local-asset">本機圖片已失效，請重新匯入 Discord 資料夾</div>';
+                }
+            }).catch(err => {
+                console.warn('Failed to load local asset image:', assetId, err);
+                const wrap = img.closest('.log-image-wrap');
+                if (wrap) {
+                    wrap.innerHTML = '<div class="missing-local-asset">本機圖片已失效，請重新匯入 Discord 資料夾</div>';
+                }
+            });
+        });
+    }
+
     function liveRenderLog() {
         const out = document.getElementById('out-content'); 
         out.innerHTML = '';
@@ -3059,7 +3243,14 @@
               
         
         getRenderableLogEntries().forEach(({ item, index }) => {
-            if (item?.type === 'image' && (!item.src || item.missingLocalAsset || !isRenderableImageSrc(item.src))) return;
+            if (item?.type === 'image' && isBlobUrl(item.src) && !item.assetId) {
+                item.originalBlobSrc = item.originalBlobSrc || item.src;
+                item.src = '';
+                item.isBlobUrl = false;
+                item.missingLocalAsset = true;
+                item.missingLocalAssetMessage = '本機圖片已失效，請重新匯入 Discord 資料夾';
+            }
+            if (item?.type === 'image' && !item.assetId && !item.missingLocalAsset && (!item.src || !isRenderableImageSrc(item.src))) return;
 
             const conf = channelConfigs[item.ch]; 
             
@@ -3108,10 +3299,21 @@
             if (item.type === 'image') {
                 renderType = 'main';
                 const imageAlign = item.align === 'center' ? 'center' : 'left';
-                contentHTML = `
-                    <div class="log-image-wrap" style="text-align:${imageAlign};">
-                        <img class="log-image" src="${escapeAttr(item.src)}" alt="${escapeAttr(item.alt || '插入圖片')}">
-                    </div>`;
+                if (item.missingLocalAsset) {
+                    contentHTML = `
+                        <div class="log-image-wrap" style="text-align:${imageAlign};">
+                            <div class="missing-local-asset">${escapeHtml(item.missingLocalAssetMessage || '本機圖片已失效，請重新匯入 Discord 資料夾')}</div>
+                        </div>`;
+                } else {
+                    const directSrc = item.src && !isBlobUrl(item.src) && isRenderableImageSrc(item.src) ? item.src : '';
+                    contentHTML = `
+                        <div class="log-image-wrap" style="text-align:${imageAlign};">
+                            <img class="log-image"
+                                ${directSrc ? `src="${escapeAttr(directSrc)}"` : ''}
+                                ${item.assetId ? `data-asset-id="${escapeAttr(item.assetId)}"` : ''}
+                                alt="${escapeAttr(item.alt || '插入圖片')}">
+                        </div>`;
+                }
             }
             else if (logViewMode === 'channel') {
                 renderType = 'main';
@@ -3254,6 +3456,7 @@
             wrap.innerHTML = editUI + itemMetaEditorHTML + contentHTML + tocEditorHTML;
 
             out.appendChild(wrap);
+            hydrateLocalAssetImages(wrap);
             lastRenderedType = renderType;
         });
 
@@ -3562,13 +3765,7 @@
     async function blobUrlToDataUrl(blobUrl) {
         const response = await fetch(blobUrl);
         const blob = await response.blob();
-
-        return await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
+        return await blobToDataUrl(blob);
     }
 
     async function prepareLogDataForHtmlExport(items) {
@@ -3576,16 +3773,27 @@
         let failedCount = 0;
 
         for (const item of exportItems) {
-            if (item?.type !== 'image' || !isBlobUrl(item.src)) continue;
+            if (item?.type !== 'image') continue;
+            if (typeof item.src === 'string' && item.src.startsWith('data:image/')) continue;
 
             try {
-                item.src = await blobUrlToDataUrl(item.src);
-                item.isBlobUrl = false;
-                item.isDataUrl = true;
-                item.missingLocalAsset = false;
+                if (item.assetId) {
+                    const blob = await loadAssetBlobFromIndexedDB(item.assetId);
+                    if (!blob) throw new Error(`Missing local asset: ${item.assetId}`);
+                    item.src = await blobToDataUrl(blob);
+                    item.isLocalAsset = false;
+                    item.isDataUrl = true;
+                    item.isBlobUrl = false;
+                    item.missingLocalAsset = false;
+                } else if (isBlobUrl(item.src)) {
+                    item.src = await blobUrlToDataUrl(item.src);
+                    item.isBlobUrl = false;
+                    item.isDataUrl = true;
+                    item.missingLocalAsset = false;
+                }
             } catch (error) {
                 failedCount++;
-                console.warn('Failed to convert blob image for export:', item, error);
+                console.warn('Failed to convert local image for export:', item, error);
                 item.originalBlobSrc = item.src;
                 item.src = '';
                 item.isBlobUrl = false;
@@ -3634,11 +3842,10 @@
     }
 
     async function downloadHTML() {
-        // TODO: 下載 HTML 前需將 blob URL 圖片轉成 base64，否則離開本頁後圖片會失效。
         const blobImageCount = rawLogData.filter(item =>
             item &&
             item.type === 'image' &&
-            isBlobUrl(item.src)
+            (isBlobUrl(item.src) || item.assetId)
         ).length;
 
         if (blobImageCount > 0 && !confirm(`此團錄包含 ${blobImageCount} 張本地匯入圖片，下載 HTML 時會將圖片內嵌到檔案中，檔案可能較大。是否繼續？`)) {
@@ -3964,6 +4171,7 @@
     function revokeActiveBlobUrls() {
         activeBlobUrls.forEach(url => URL.revokeObjectURL(url));
         activeBlobUrls = [];
+        assetObjectUrlCache.clear();
     }
 
     function parseDiscordHtmlToRawLogData(htmlText, options = {}) {
@@ -4053,22 +4261,22 @@
                     const assetFile = resolveDiscordAssetFile(src, options.htmlFile, options.assetMap);
                     const isLocalAsset = !isDirectDiscordImageSrc(src);
                     let finalSrc = src;
-                    let isBlobUrl = false;
+                    let assetId = '';
                     let assetPath = '';
                     let missingLocalAsset = false;
 
                     if (assetFile) {
-                        finalSrc = URL.createObjectURL(assetFile);
-                        activeBlobUrls.push(finalSrc);
-                        isBlobUrl = true;
+                        assetId = makeAssetIdForFile(assetFile);
+                        finalSrc = '';
                         assetPath = assetFile.webkitRelativePath || assetFile.name || '';
+                        queueAssetSave(assetFile, assetId);
                     } else if (isLocalAsset) {
                         console.warn('Discord attachment asset not found:', src);
                         missingLocalAsset = true;
                         return;
                     }
 
-                    if (!isRenderableImageSrc(finalSrc)) return;
+                    if (!assetId && !isRenderableImageSrc(finalSrc)) return;
 
                     items.push({
                         ...base,
@@ -4076,8 +4284,10 @@
                         html: '',
                         src: finalSrc,
                         originalSrc: src,
+                        assetId,
                         assetPath,
-                        isBlobUrl,
+                        isLocalAsset: !!assetId,
+                        isBlobUrl: false,
                         missingLocalAsset,
                         alt: img.getAttribute('alt') || 'Discord 圖片附件',
                         parentMessageId: messageId,
@@ -4099,7 +4309,7 @@
 
         const textItems = items.filter(item => item.type !== 'image');
         const imageItems = items.filter(item => item.type === 'image');
-        const resolvedLocalImageCount = imageItems.filter(item => item.isBlobUrl).length;
+        const resolvedLocalImageCount = imageItems.filter(item => item.assetId).length;
         const missingLocalImageCount = imageItems.filter(item => item.missingLocalAsset).length;
         const authorNames = [...new Set(items.map(item => item.name).filter(Boolean))];
         const timedItems = items
@@ -4148,6 +4358,7 @@
         channelConfigs = {};
         channelOrder = [];
         discordOtherChannels = [];
+        pendingAssetSavePromises = [];
         rawLogData = [];
         activeIndex = null;
         clearLogSelection();
@@ -4232,6 +4443,10 @@
                 assetMap
             })
         );
+        const assetSaveResult = await drainPendingAssetSaves();
+        if (assetSaveResult.failedCount > 0) {
+            console.warn(`${assetSaveResult.failedCount} local Discord image asset(s) failed to save.`);
+        }
 
         finishDiscordImport(imports);
     }
