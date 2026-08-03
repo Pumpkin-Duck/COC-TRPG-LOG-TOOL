@@ -1970,6 +1970,113 @@
         return markdown;
     }
 
+    function isCompactDiscordExport(doc) {
+        return !!(
+            doc.querySelector('.hdr h1') &&
+            doc.querySelector('.wrap .msg') &&
+            doc.querySelector('.msg .nm') &&
+            doc.querySelector('.msg .ts') &&
+            doc.querySelector('.msg .bd')
+        );
+    }
+
+    function getCompactDiscordMeta(doc) {
+        const rawTitle = doc.querySelector('.hdr h1')?.textContent?.trim() || '';
+        const small = doc.querySelector('.hdr small')?.textContent?.trim() || '';
+
+        const channelName = rawTitle.replace(/^#\s*/, '').trim() || 'Discord';
+        const serverName = small.split('·')[0]?.trim() || '';
+
+        return {
+            channelName,
+            serverName,
+            exportInfo: small
+        };
+    }
+
+    function parseCompactDiscordTimestamp(timeText) {
+        const text = String(timeText || '').trim();
+        if (!text) return null;
+
+        const parsed = Date.parse(text.replace(' ', 'T'));
+        return Number.isNaN(parsed) ? null : parsed;
+    }
+
+    function compactDiscordHtmlToCustomMarkdown(contentEl) {
+        if (!contentEl) return "";
+
+        function childrenToMarkdown(node) {
+            return Array.from(node.childNodes).map(nodeToMarkdown).join('');
+        }
+
+        function blockText(text) {
+            return String(text || '').replace(/\n{3,}/g, '\n\n').trim();
+        }
+
+        function listToMarkdown(listEl, depth = 0) {
+            return Array.from(listEl.children)
+                .filter(child => child.tagName === 'LI')
+                .map(li => {
+                    const nested = Array.from(li.children).filter(child => child.tagName === 'UL');
+                    const own = Array.from(li.childNodes)
+                        .filter(child => !(child.nodeType === Node.ELEMENT_NODE && child.tagName === 'UL'))
+                        .map(nodeToMarkdown)
+                        .join('')
+                        .trim();
+                    const prefix = `${'  '.repeat(depth)}- `;
+                    const nestedText = nested.map(child => listToMarkdown(child, depth + 1)).filter(Boolean).join('\n');
+                    return nestedText ? `${prefix}${own}\n${nestedText}` : `${prefix}${own}`;
+                })
+                .join('\n');
+        }
+
+        function quoteToMarkdown(node) {
+            const content = childrenToMarkdown(node).trim();
+            return blockText(content)
+                .split('\n')
+                .map(line => `> ${line}`)
+                .join('\n');
+        }
+
+        function nodeToMarkdown(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                return node.nodeValue || '';
+            }
+            if (node.nodeType !== Node.ELEMENT_NODE) return '';
+
+            const tag = node.tagName;
+            const cls = node.classList || { contains: () => false };
+
+            if (tag === 'BR') return '\n';
+            if (tag === 'PRE') return `\n\`\`\`\n${node.textContent.replace(/\n$/, '')}\n\`\`\`\n`;
+            if (tag === 'CODE') return `\`${node.textContent}\``;
+            if (tag === 'UL') return `\n${listToMarkdown(node)}\n`;
+            if (tag === 'LI') return childrenToMarkdown(node);
+            if (cls.contains('qt')) return `\n${quoteToMarkdown(node)}\n`;
+            if (cls.contains('dc-h1')) return `\n#H1-${blockText(childrenToMarkdown(node))}-H1#\n`;
+            if (cls.contains('dc-h2')) return `\n#H2-${blockText(childrenToMarkdown(node))}-H2#\n`;
+            if (cls.contains('dc-h3')) return `\n#H3-${blockText(childrenToMarkdown(node))}-H3#\n`;
+            if (cls.contains('dc-sub')) return `\n#-${blockText(childrenToMarkdown(node))}-#\n`;
+            if (cls.contains('mention') || cls.contains('mention-ch') || cls.contains('lnk') || cls.contains('spoiler')) return node.textContent || '';
+
+            const content = childrenToMarkdown(node);
+            if (tag === 'P' || tag === 'DIV') return `${content}\n`;
+            return content;
+        }
+
+        let markdown = childrenToMarkdown(contentEl)
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+        return markdown;
+    }
+
+    function isCompactDiscordAttachmentImage(img) {
+        if (!img) return false;
+        if (img.classList.contains('av')) return false;
+        if (img.closest('.rxs, .rx, .emoji, .stickers, .emb, .emb-a, .emb-f')) return false;
+        return img.closest('.atts') !== null;
+    }
+
     function sortLogItems(items) {
         const hasSortableTimestamp = item => item.timestamp !== null && item.timestamp !== undefined && Number.isFinite(Number(item.timestamp));
 
@@ -2055,6 +2162,16 @@
         });
     }
 
+    async function clearAssetsFromIndexedDB() {
+        const db = await openLogDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(ASSET_STORE_NAME, 'readwrite');
+            tx.objectStore(ASSET_STORE_NAME).clear();
+            tx.oncomplete = () => { db.close(); resolve(); };
+            tx.onerror = () => { const error = tx.error; db.close(); reject(error); };
+        });
+    }
+
     function getPersistableRawLogData(data) {
         return JSON.parse(JSON.stringify(Array.isArray(data) ? data : [])).map(item => {
             if (item?.type === 'image' && isBlobUrl(item.src)) {
@@ -2067,6 +2184,39 @@
         });
     }
 
+    function getLegacyKpBlankKey() {
+        return String.fromCharCode(75, 80, 22167, 62344, 24449, 63, 36381, 63);
+    }
+
+    function migrateLegacyKpBlankColorKey() {
+        const legacyKey = getLegacyKpBlankKey();
+        const targetKey = 'KP（空白）';
+        let changed = false;
+
+        [charColorMap, detectedCharColorMap, manualCharColorMap, charNameVisibilityMap].forEach(map => {
+            if (!map || !Object.prototype.hasOwnProperty.call(map, legacyKey)) return;
+
+            if (!Object.prototype.hasOwnProperty.call(map, targetKey)) {
+                map[targetKey] = map[legacyKey];
+            }
+
+            delete map[legacyKey];
+            changed = true;
+        });
+
+        return changed;
+    }
+
+    function stableHashText(value) {
+        const source = String(value || '');
+        let hash = 5381;
+        for (let i = 0; i < source.length; i++) {
+            hash = ((hash << 5) + hash) + source.charCodeAt(i);
+            hash >>>= 0;
+        }
+        return hash.toString(36);
+    }
+
     function makeAssetIdForFile(file) {
         const source = [
             file?.webkitRelativePath || file?.name || 'asset',
@@ -2074,12 +2224,29 @@
             file?.lastModified || 0,
             file?.type || ''
         ].join('|');
-        let hash = 5381;
-        for (let i = 0; i < source.length; i++) {
-            hash = ((hash << 5) + hash) + source.charCodeAt(i);
-            hash >>>= 0;
-        }
-        return `asset_${hash.toString(36)}_${file?.size || 0}`;
+        return `asset_${stableHashText(source)}_${file?.size || 0}`;
+    }
+
+    function generateExportImageKey(item, index = 0) {
+        if (item?.exportImageKey) return item.exportImageKey;
+
+        const source = [
+            item?.ch || item?.channelKey || item?.channelName || '',
+            item?.messageId || item?.parentMessageId || '',
+            item?.subOrder ?? '',
+            item?.assetPath || item?.originalSrc || item?.assetId || item?.alt || '',
+            index
+        ].join('|');
+
+        return `image_${stableHashText(source)}`;
+    }
+
+    function ensureExportImageKeys(items) {
+        (items || []).forEach((item, index) => {
+            if (item?.type === 'image' && !item.exportImageKey) {
+                item.exportImageKey = generateExportImageKey(item, index);
+            }
+        });
     }
 
     async function saveAssetBlobToIndexedDB(id, blob, meta = {}) {
@@ -2141,6 +2308,112 @@
             reader.onerror = reject;
             reader.readAsDataURL(blob);
         });
+    }
+
+    function dataUrlToBlob(dataUrl) {
+        const value = String(dataUrl || '');
+        if (!/^data:image\//i.test(value)) {
+            throw new Error('Invalid image data URL');
+        }
+
+        const commaIndex = value.indexOf(',');
+        if (commaIndex < 0) {
+            throw new Error('Invalid image data URL');
+        }
+
+        const header = value.slice(0, commaIndex);
+        const payload = value.slice(commaIndex + 1);
+        const mime = header.match(/^data:([^;,]+)/i)?.[1] || 'image/png';
+        const isBase64 = /;base64/i.test(header);
+        const binary = isBase64 ? atob(payload) : decodeURIComponent(payload);
+        const bytes = new Uint8Array(binary.length);
+
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+
+        return new Blob([bytes], { type: mime });
+    }
+
+    function collectReaderExportImagesFromDocument(doc) {
+        const imageMap = new Map();
+        if (!doc) return imageMap;
+
+        doc.querySelectorAll('img[data-export-image-key]').forEach(img => {
+            const key = img.getAttribute('data-export-image-key') || '';
+            const src = img.getAttribute('src') || '';
+
+            if (!key || !/^data:image\//i.test(src) || imageMap.has(key)) return;
+            imageMap.set(key, src);
+        });
+
+        return imageMap;
+    }
+
+    function collectReaderIntroImageFromDocument(doc) {
+        const src = doc?.querySelector('#out-img img')?.getAttribute('src') || '';
+        return isDataImageSrc(src) ? src : '';
+    }
+
+    async function saveDataUrlAsAsset(exportImageKey, dataUrl, meta = {}) {
+        const blob = dataUrlToBlob(dataUrl);
+        const assetId = `reader_asset_${stableHashText(exportImageKey)}_${blob.size}`;
+
+        await saveAssetBlobToIndexedDB(assetId, blob, {
+            name: meta.name || meta.alt || exportImageKey || 'reader-image',
+            type: blob.type,
+            size: blob.size,
+            assetPath: meta.assetPath || meta.originalSrc || ''
+        });
+
+        return assetId;
+    }
+
+    async function rebuildAssetsFromReaderHtml(items, imageMap) {
+        const rebuiltItems = Array.isArray(items) ? items : [];
+        const missingMessage = '\u672c\u6a5f\u5716\u7247\u5df2\u5931\u6548\uff0c\u8acb\u91cd\u65b0\u532f\u5165 Discord \u8cc7\u6599\u593e';
+
+        for (let index = 0; index < rebuiltItems.length; index++) {
+            const item = rebuiltItems[index];
+            if (item?.type !== 'image') continue;
+
+            item.exportImageKey = item.exportImageKey || generateExportImageKey(item, index);
+            item.src = '';
+            item.isBlobUrl = false;
+            item.isDataUrl = false;
+
+            const dataUrl = imageMap?.get(item.exportImageKey);
+            if (!dataUrl) {
+                item.assetId = '';
+                item.isStoredAsset = false;
+                item.isLocalAsset = false;
+                item.missingLocalAsset = true;
+                item.missingLocalAssetMessage = item.missingLocalAssetMessage || missingMessage;
+                continue;
+            }
+
+            try {
+                item.assetId = await saveDataUrlAsAsset(item.exportImageKey, dataUrl, {
+                    name: item.alt || item.assetPath || item.originalSrc || item.exportImageKey,
+                    alt: item.alt || '',
+                    assetPath: item.assetPath || '',
+                    originalSrc: item.originalSrc || ''
+                });
+                item.isStoredAsset = true;
+                item.isLocalAsset = true;
+                item.missingLocalAsset = false;
+                delete item.missingLocalAssetMessage;
+            } catch (err) {
+                console.warn('Failed to rebuild reader export image asset:', item.exportImageKey, err);
+                item.assetId = '';
+                item.isStoredAsset = false;
+                item.isLocalAsset = false;
+                item.missingLocalAsset = true;
+                item.missingLocalAssetMessage = missingMessage;
+            }
+        }
+
+        return rebuiltItems;
     }
 
     async function getObjectUrlForAsset(assetId) {
@@ -2399,6 +2672,7 @@
         charNameVisibilityMap = data.charNameVisibilityMap || {};
         channelConfigs = data.channelConfigs || {};
         discordOtherChannels = Array.isArray(data.discordOtherChannels) ? data.discordOtherChannels : [];
+        const migratedLegacyKpBlankKey = migrateLegacyKpBlankColorKey();
 
         let loadedIntroImageSrc = data.imgSrc || '';
         if (data.imgSrc?.startsWith?.('data:image/')) {
@@ -2450,6 +2724,7 @@
             liveUpdateHeader();
             liveRenderLog();
         }
+        if (migratedLegacyKpBlankKey) saveToLocal();
         updateThemeSelect();
     }
 
@@ -2463,11 +2738,11 @@
         hoList.forEach((item, index) => {
             const div = document.createElement('div'); div.className = 'ho-edit-item';
             div.innerHTML = `
-                <input type="text" class="ho-tag-input" value="${item.ho}" oninput="updateHOData(${index}, 'ho', this.value)">
-                <input type="text" class="pl-name-input" placeholder="PL 名稱" value="${item.pl}" oninput="updateHOData(${index}, 'pl', this.value)">
+                <input type="text" class="ho-tag-input" value="${escapeAttr(item.ho)}" oninput="updateHOData(${index}, 'ho', this.value)">
+                <input type="text" class="pl-name-input" placeholder="PL 名稱" value="${escapeAttr(item.pl)}" oninput="updateHOData(${index}, 'pl', this.value)">
                 <div class="color-pill">
-                    <input type="color" value="${item.color}" oninput="updateHOData(${index}, 'color', this.value, 'picker', this)">
-                    <input type="text" class="hex-field" value="${item.color}" oninput="updateHOData(${index}, 'color', this.value, 'text', this)">
+                    <input type="color" value="${escapeAttr(getColorInputValue(item.color))}" oninput="updateHOData(${index}, 'color', this.value, 'picker', this)">
+                    <input type="text" class="hex-field" value="${escapeAttr(item.color)}" oninput="updateHOData(${index}, 'color', this.value, 'text', this)">
                 </div>
                 <button onclick="removeHORow(${index})" style="background:none; border:none; color:#e74c3c; cursor:pointer; font-weight:bold; font-size:20px; flex-shrink:0;">✕</button>`;
             container.appendChild(div);
@@ -3093,9 +3368,8 @@
         const preset = THEME_PRESETS[getValidTheme(theme)];
         const defaultTextColor = getDefaultLogTextColor(theme);
         charColorMap["KP（空白）"] = preset.kpText;
-        charColorMap["KP嚗征?踝?"] = preset.kpText;
         Object.keys(charColorMap).forEach(name => {
-            if (name === "KP（空白）" || name === "KP嚗征?踝?") return;
+            if (name === "KP（空白）") return;
             if (manualCharColorMap[name]) return;
             if (detectedCharColorMap[name]) return;
             charColorMap[name] = defaultTextColor;
@@ -3282,7 +3556,7 @@
                 wrap.classList.add('move-source');
             }
 
-            const displayColor = (item.name === "" || item.name === "system") ? (charColorMap["KP（空白）"] || charColorMap["KP嚗征?踝?"] || getDefaultLogTextColor()) : (charColorMap[item.name] || getDefaultLogTextColor());
+            const displayColor = (item.name === "" || item.name === "system") ? (charColorMap["KP（空白）"] || getDefaultLogTextColor()) : (charColorMap[item.name] || getDefaultLogTextColor());
             const isNameVisibleForChar = item.name && charNameVisibilityMap[item.name] !== false;
             const shouldShowName = !!(globalShowName && item.name && item.name !== "system" && isNameVisibleForChar);
             const shouldShowTime = shouldDisplayItemTime(item);
@@ -3299,18 +3573,21 @@
             if (item.type === 'image') {
                 renderType = 'main';
                 const imageAlign = item.align === 'center' ? 'center' : 'left';
+                const exportImageKey = item.exportImageKey || '';
+                const exportImageKeyAttr = exportImageKey ? ` data-export-image-key="${escapeAttr(exportImageKey)}"` : '';
                 if (item.missingLocalAsset) {
                     contentHTML = `
-                        <div class="log-image-wrap" style="text-align:${imageAlign};">
+                        <div class="log-image-wrap"${exportImageKeyAttr} style="text-align:${imageAlign};">
                             <div class="missing-local-asset">${escapeHtml(item.missingLocalAssetMessage || '本機圖片已失效，請重新匯入 Discord 資料夾')}</div>
                         </div>`;
                 } else {
                     const directSrc = item.src && !isBlobUrl(item.src) && isRenderableImageSrc(item.src) ? item.src : '';
                     contentHTML = `
-                        <div class="log-image-wrap" style="text-align:${imageAlign};">
+                        <div class="log-image-wrap"${exportImageKeyAttr} style="text-align:${imageAlign};">
                             <img class="log-image"
                                 ${directSrc ? `src="${escapeAttr(directSrc)}"` : ''}
                                 ${item.assetId ? `data-asset-id="${escapeAttr(item.assetId)}"` : ''}
+                                ${exportImageKeyAttr}
                                 alt="${escapeAttr(item.alt || '插入圖片')}">
                         </div>`;
                 }
@@ -3541,7 +3818,7 @@
         item.name = nextName;
 
         if (nextName && nextName !== 'system' && !charColorMap[nextName]) {
-            charColorMap[nextName] = detectedCharColorMap[nextName] || item.detectedColor || charColorMap["KP（空白）"] || charColorMap["KP嚗征?踝?"] || getDefaultLogTextColor();
+            charColorMap[nextName] = detectedCharColorMap[nextName] || item.detectedColor || charColorMap["KP（空白）"] || getDefaultLogTextColor();
         }
         if (nextName && nextName !== 'system' && charNameVisibilityMap[nextName] === undefined) {
             charNameVisibilityMap[nextName] = true;
@@ -3698,13 +3975,13 @@
         let infoBarHTML = '';
         const kp = document.getElementById('kp-name').value.trim();
         // 讀取剛剛新增的顏色選擇器的值
-        const kpColor = document.getElementById('kp-color').value; 
+        const kpColor = getColorInputValue(document.getElementById('kp-color').value); 
         
         if (kp) {
-            infoBarHTML += `<div class="info-line" style="color:${kpColor}"><strong style="margin-right:12px; min-width:40px;">KP</strong><span>${kp}</span></div>`;
+            infoBarHTML += `<div class="info-line" style="color:${kpColor}"><strong style="margin-right:12px; min-width:40px;">KP</strong><span>${escapeHtml(kp)}</span></div>`;
         }
         hoList.forEach(item => {
-            if(item.ho || item.pl) infoBarHTML += `<div class="info-line" style="color:${item.color}"><strong style="margin-right:12px; min-width:40px;">${item.ho}</strong><span>${item.pl}</span></div>`;
+            if(item.ho || item.pl) infoBarHTML += `<div class="info-line" style="color:${getColorInputValue(item.color)}"><strong style="margin-right:12px; min-width:40px;">${escapeHtml(item.ho)}</strong><span>${escapeHtml(item.pl)}</span></div>`;
         });
         const infoBarEl = document.getElementById('out-info-bar');
         infoBarEl.innerHTML = infoBarHTML; infoBarEl.style.display = (showIntroSection && infoBarHTML) ? 'block' : 'none';
@@ -3744,22 +4021,55 @@
     }
 
     function buildToolExportDataScript(exportLogData) {
+        ensureExportImageKeys(exportLogData);
+        const introImageSrc = getCurrentIntroImageSrc();
+        const isDataIntroImage = isDataImageSrc(introImageSrc);
         const payload = {
             app: 'coc-trpg-log-tool',
             version: 1,
+            exportMode: 'reader',
             exportedAt: Date.now(),
             settings: {
                 ...getSettingsData(),
-                imgSrc: getCurrentIntroImageSrc()
+                imgSrc: isDataIntroImage ? '' : introImageSrc,
+                introImageOmittedFromReaderExport: isDataIntroImage
             },
-            rawLogData: exportLogData
+            rawLogData: stripImageDataUrlsForExportData(exportLogData)
         };
         const json = JSON.stringify(payload).replace(/</g, '\\u003c');
         return `<script type="application/json" id="${EXPORT_DATA_SCRIPT_ID}">${json}<\/script>`;
     }
 
+    function stripImageDataUrlsForExportData(items) {
+        return JSON.parse(JSON.stringify(Array.isArray(items) ? items : [])).map((item, index) => {
+            if (item?.type === 'image') {
+                item.exportImageKey = item.exportImageKey || generateExportImageKey(item, index);
+                let omittedDataUrl = false;
+                ['src', 'originalSrc', 'originalBlobSrc'].forEach(field => {
+                    if (isDataImageSrc(item[field])) {
+                        item[`${field}OmittedFromReaderExport`] = true;
+                        item[field] = '';
+                        omittedDataUrl = true;
+                    }
+                });
+                if (omittedDataUrl) item.readingSrcOmitted = true;
+                item.isDataUrl = false;
+                if (isBlobUrl(item.src)) {
+                    item.originalBlobSrc = item.originalBlobSrc || item.src;
+                    item.src = '';
+                    item.isBlobUrl = false;
+                }
+            }
+            return item;
+        });
+    }
+
     function isBlobUrl(src) {
         return typeof src === 'string' && src.startsWith('blob:');
+    }
+
+    function isDataImageSrc(src) {
+        return /^data:image\//i.test(String(src || '').trim());
     }
 
     async function blobUrlToDataUrl(blobUrl) {
@@ -3770,11 +4080,12 @@
 
     async function prepareLogDataForHtmlExport(items) {
         const exportItems = JSON.parse(JSON.stringify(items || []));
+        ensureExportImageKeys(exportItems);
         let failedCount = 0;
 
         for (const item of exportItems) {
             if (item?.type !== 'image') continue;
-            if (typeof item.src === 'string' && item.src.startsWith('data:image/')) continue;
+            if (isDataImageSrc(item.src)) continue;
 
             try {
                 if (item.assetId) {
@@ -3842,13 +4153,14 @@
     }
 
     async function downloadHTML() {
+        ensureExportImageKeys(rawLogData);
         const blobImageCount = rawLogData.filter(item =>
             item &&
             item.type === 'image' &&
             (isBlobUrl(item.src) || item.assetId)
         ).length;
 
-        if (blobImageCount > 0 && !confirm(`此團錄包含 ${blobImageCount} 張本地匯入圖片，下載 HTML 時會將圖片內嵌到檔案中，檔案可能較大。是否繼續？`)) {
+        if (blobImageCount > 0 && !confirm('\u6b64\u5718\u9304\u5305\u542b ' + blobImageCount + ' \u5f35\u672c\u5730\u532f\u5165\u5716\u7247\uff0c\u4e0b\u8f09 HTML \u6642\u6703\u5c07\u5716\u7247\u5167\u5d4c\u5230\u95b1\u8b80\u5167\u5bb9\u4e2d\u3002\u5de5\u5177\u8cc7\u6599\u4e2d\u6703\u7565\u904e\u91cd\u8907\u7684 base64 \u5716\u7247\uff0c\u4ee5\u907f\u514d\u6a94\u6848\u91cd\u8907\u81a8\u8139\u3002\u662f\u5426\u7e7c\u7e8c\uff1f')) {
             return;
         }
 
@@ -3866,7 +4178,7 @@
         const shouldExportChannelTabs = logViewMode === 'channel';
         const { items: exportLogData, failedCount } = await prepareLogDataForHtmlExport(rawLogData);
         if (failedCount > 0) {
-            alert(`有 ${failedCount} 張本機圖片無法轉存到下載 HTML，已略過這些圖片以避免產生失效的 blob 連結。`);
+            alert('\u6709 ' + failedCount + ' \u5f35\u672c\u6a5f\u5716\u7247\u7121\u6cd5\u8f49\u5b58\u5230\u4e0b\u8f09 HTML\uff0c\u5df2\u7565\u904e\u9019\u4e9b\u5716\u7247\u4ee5\u907f\u514d\u7522\u751f\u5931\u6548\u7684 blob \u9023\u7d50\u3002');
         }
         const content = captureExportOutputHTML(exportLogData);
         const style = document.querySelector('style').innerHTML;
@@ -3893,6 +4205,16 @@
         if (text.includes(`id="${EXPORT_DATA_SCRIPT_ID}"`) || text.includes(`id='${EXPORT_DATA_SCRIPT_ID}'`)) {
             return 'tool';
         }
+
+        try {
+            const doc = new DOMParser().parseFromString(text, 'text/html');
+            if (isCompactDiscordExport(doc)) {
+                return 'discordCompact';
+            }
+        } catch (err) {
+            console.warn('Failed to parse HTML for compact Discord detection:', err);
+        }
+
         const discordMarkers = [
             'chatlog__message-container',
             'chatlog__author',
@@ -3915,12 +4237,16 @@
         if (payload?.app !== 'coc-trpg-log-tool' || !Array.isArray(payload.rawLogData)) {
             throw new Error('Invalid tool export payload');
         }
+        payload.readerImageMap = collectReaderExportImagesFromDocument(doc);
+        payload.readerIntroImageSrc = collectReaderIntroImageFromDocument(doc);
         return payload;
     }
 
-    function importToolExportHtmlText(htmlText) {
+    async function importToolExportHtmlText(htmlText, options = {}) {
         const payload = parseToolExportHtml(htmlText);
         if (!payload) throw new Error('Missing tool export payload');
+        const isReaderExport = payload.exportMode === 'reader';
+        const readerImageMap = payload.readerImageMap || new Map();
 
         const settings = payload.settings || {};
         document.getElementById('scenario-name').value = settings.scenarioName || '';
@@ -3946,7 +4272,7 @@
         const globalShowTimeEl = document.getElementById('global-show-time');
         if (globalShowTimeEl) globalShowTimeEl.checked = globalShowTime;
 
-        setIntroImagePreview(settings.imgSrc || '');
+        setIntroImagePreview(settings.imgSrc || (isReaderExport ? payload.readerIntroImageSrc : '') || '');
 
         charColorMap = settings.charColorMap || {};
         detectedCharColorMap = settings.detectedCharColorMap || {};
@@ -3954,7 +4280,20 @@
         charNameVisibilityMap = settings.charNameVisibilityMap || {};
         channelConfigs = settings.channelConfigs || {};
         discordOtherChannels = Array.isArray(settings.discordOtherChannels) ? settings.discordOtherChannels : [];
-        rawLogData = payload.rawLogData;
+        migrateLegacyKpBlankColorKey();
+        let importedRawLogData = Array.isArray(payload.rawLogData) ? payload.rawLogData : [];
+
+        if (options.clearAssetsBeforeImport) {
+            await clearAssetsForReplacingImport(true);
+        }
+
+        if (isReaderExport) {
+            importedRawLogData = await rebuildAssetsFromReaderHtml(importedRawLogData, readerImageMap);
+        } else {
+            ensureExportImageKeys(importedRawLogData);
+        }
+
+        rawLogData = importedRawLogData;
 
         activeIndex = null;
         moveSourceIndex = null;
@@ -3969,6 +4308,7 @@
         switchMode(settings.mode || 'view');
         liveUpdateHeader();
         liveRenderLog();
+        await saveRawLogDataToIndexedDB(rawLogData);
         saveToLocal({ rawLogChanged: true, introImageChanged: true });
     }
 
@@ -4174,6 +4514,138 @@
         assetObjectUrlCache.clear();
     }
 
+    async function parseCompactDiscordHtmlToRawLogData(htmlText, options = {}) {
+        const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+        const meta = getCompactDiscordMeta(doc);
+        const channelName = options.channelName || meta.channelName || 'Discord';
+        const ch = options.ch || `[dcx:${channelName}]`;
+
+        const currentTheme = getValidTheme(document.body.getAttribute('data-theme'));
+        channelConfigs[ch] = {
+            checked: true,
+            label: channelName,
+            bgColor: THEME_PRESETS[currentTheme].customBg,
+            borderColor: 'var(--primary-color)'
+        };
+
+        const items = [];
+        const messages = Array.from(doc.querySelectorAll('.wrap .msg'));
+        let messageCount = 0;
+
+        for (let msgIndex = 0; msgIndex < messages.length; msgIndex++) {
+            const msg = messages[msgIndex];
+            const name = msg.querySelector('.nm')?.textContent?.trim() || 'Discord';
+            if (name && name !== 'system') {
+                const detectedColor = '#4a4a4a';
+                if (!detectedCharColorMap[name]) {
+                    detectedCharColorMap[name] = detectedColor;
+                }
+                if (!charColorMap[name]) {
+                    charColorMap[name] = detectedColor || charColorMap['KP（空白）'] || getDefaultLogTextColor();
+                }
+                if (charNameVisibilityMap[name] === undefined) {
+                    charNameVisibilityMap[name] = true;
+                }
+            }
+            const timeText = msg.querySelector('.ts')?.textContent?.trim() || '';
+            const timestamp = parseCompactDiscordTimestamp(timeText);
+            const contentEl = msg.querySelector('.tx');
+            const markdown = contentEl ? compactDiscordHtmlToCustomMarkdown(contentEl).trim() : '';
+            const messageId = `compact_${stableHashText(`${ch}|${timeText}|${name}|${msgIndex}`)}`;
+            const base = {
+                source: 'discordCompact',
+                ch,
+                channelName,
+                name,
+                originalAuthorName: name,
+                speakerType: 'character',
+                displayTime: timeText,
+                timestamp: Number.isFinite(timestamp) ? timestamp : null,
+                messageId,
+                detectedColor: '#4a4a4a',
+                subOrder: 0,
+                showInTOC: false,
+                tocTitle: ''
+            };
+
+            if (markdown) {
+                messageCount++;
+                items.push({
+                    ...base,
+                    type: 'text',
+                    html: markdown,
+                    subOrder: 0
+                });
+            }
+
+            const attachmentImages = Array.from(msg.querySelectorAll('.atts img')).filter(isCompactDiscordAttachmentImage);
+            for (let imgIndex = 0; imgIndex < attachmentImages.length; imgIndex++) {
+                const img = attachmentImages[imgIndex];
+                const src = img.getAttribute('src') || '';
+                if (!src) continue;
+
+                messageCount++;
+                let assetId = '';
+                let finalSrc = '';
+                let isLocalAsset = false;
+                let isStoredAsset = false;
+                let isBlobUrl = false;
+                let isDataUrl = false;
+                let missingLocalAsset = false;
+
+                if (/^data:image\//i.test(src)) {
+                    const blob = dataUrlToBlob(src);
+                    assetId = `compact_asset_${stableHashText(`${ch}|${timeText}|${name}|${msgIndex}|${imgIndex}`)}_${blob.size}`;
+                    await saveAssetBlobToIndexedDB(assetId, blob, {
+                        source: 'discordCompact',
+                        channelName,
+                        messageId,
+                        originalSrc: src,
+                        assetPath: ''
+                    });
+                } else if (/^https?:\/\//i.test(src)) {
+                    finalSrc = src;
+                    isLocalAsset = false;
+                    isStoredAsset = false;
+                    isBlobUrl = false;
+                    isDataUrl = false;
+                    missingLocalAsset = false;
+                } else {
+                    finalSrc = '';
+                    isLocalAsset = true;
+                    isStoredAsset = false;
+                    isBlobUrl = false;
+                    isDataUrl = false;
+                    missingLocalAsset = true;
+                }
+
+                const imageItem = {
+                    ...base,
+                    type: 'image',
+                    html: '',
+                    src: finalSrc,
+                    originalSrc: src,
+                    assetId,
+                    assetPath: '',
+                    isLocalAsset,
+                    isStoredAsset,
+                    isBlobUrl,
+                    isDataUrl,
+                    missingLocalAsset,
+                    alt: img.getAttribute('alt') || 'Discord 圖片附件',
+                    parentMessageId: messageId,
+                    subOrder: imgIndex + 1,
+                    showInTOC: false,
+                    tocTitle: ''
+                };
+                imageItem.exportImageKey = generateExportImageKey(imageItem, items.length);
+                items.push(imageItem);
+            }
+        }
+
+        return { items, meta: { ...meta, channelName, ch, messageCount } };
+    }
+
     function parseDiscordHtmlToRawLogData(htmlText, options = {}) {
         const doc = new DOMParser().parseFromString(htmlText, 'text/html');
         const meta = getDiscordMeta(doc);
@@ -4211,7 +4683,7 @@
 
                 if (name) {
                     if (detectedColor && !detectedCharColorMap[name]) detectedCharColorMap[name] = detectedColor;
-                    if (!charColorMap[name]) charColorMap[name] = detectedColor || charColorMap["KP（空白）"] || charColorMap["KP嚗征?踝?"] || getDefaultLogTextColor();
+                    if (!charColorMap[name]) charColorMap[name] = detectedColor || charColorMap["KP（空白）"] || getDefaultLogTextColor();
                     if (charNameVisibilityMap[name] === undefined) charNameVisibilityMap[name] = true;
                 }
             }
@@ -4340,6 +4812,47 @@
         };
     }
 
+    async function parseCompactDiscordHtmlToImport(htmlText, fileName = '', usedChannelKeys = new Set(Object.keys(channelConfigs)), options = {}) {
+        const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+        const compactMeta = getCompactDiscordMeta(doc);
+        const channelName = compactMeta.channelName || 'Discord';
+        const baseCh = `[dcx:${channelName}]`;
+        const ch = makeUniqueChannelKey(baseCh, usedChannelKeys);
+        const parsed = await parseCompactDiscordHtmlToRawLogData(htmlText, { ...options, ch, channelName, fileName });
+        const items = parsed.items || [];
+
+        const textItems = items.filter(item => item.type !== 'image');
+        const imageItems = items.filter(item => item.type === 'image');
+        const resolvedLocalImageCount = imageItems.filter(item => item.assetId).length;
+        const missingLocalImageCount = imageItems.filter(item => item.missingLocalAsset).length;
+        const authorNames = [...new Set(items.map(item => item.name).filter(Boolean))];
+        const timedItems = items
+            .filter(item => item.timestamp !== null && item.timestamp !== undefined && Number.isFinite(Number(item.timestamp)))
+            .sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+        const firstItem = timedItems[0] || items[0] || null;
+        const lastItem = timedItems[timedItems.length - 1] || items[items.length - 1] || null;
+
+        return {
+            meta: {
+                source: 'discordCompact',
+                fileName: fileName || '',
+                serverName: compactMeta.serverName || '',
+                channelName,
+                ch,
+                messageCount: parsed.meta?.messageCount ?? textItems.length,
+                imageCount: imageItems.length,
+                resolvedLocalImageCount,
+                missingLocalImageCount,
+                authorNames,
+                firstTimestamp: firstItem?.timestamp ?? null,
+                lastTimestamp: lastItem?.timestamp ?? null,
+                firstDisplayTime: firstItem?.displayTime || '',
+                lastDisplayTime: lastItem?.displayTime || ''
+            },
+            items
+        };
+    }
+
     function readHtmlFileAsText(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -4375,10 +4888,24 @@
 
     function confirmBeforeReplacingImport() {
         if (!Array.isArray(rawLogData) || rawLogData.length === 0) return true;
-        return confirm('目前已有團錄資料，重新匯入會覆蓋現有內容。確定要繼續嗎？');
+        return confirm('\u76ee\u524d\u5df2\u6709\u5718\u9304\u8cc7\u6599\uff0c\u91cd\u65b0\u532f\u5165\u6703\u8986\u84cb\u73fe\u6709\u5167\u5bb9\u3002\u78ba\u5b9a\u8981\u7e7c\u7e8c\u55ce\uff1f');
     }
 
-    function finishDiscordImport(imports) {
+    function shouldClearAssetsForReplacingImport() {
+        return true;
+    }
+
+    async function clearAssetsForReplacingImport(shouldClear) {
+        if (!shouldClear) return;
+        try {
+            await clearAssetsFromIndexedDB();
+            revokeActiveBlobUrls();
+        } catch (err) {
+            console.error('IndexedDB assets clear failed:', err);
+        }
+    }
+
+    async function finishDiscordImport(imports) {
         const allItems = imports.flatMap(item => item.items);
         rawLogData = sortLogItems(allItems);
         setDiscordChannelOrderByFirstMessageTime();
@@ -4400,6 +4927,7 @@
         liveUpdateHeader();
         renderConfigPanel();
         liveRenderLog();
+        await saveRawLogDataToIndexedDB(rawLogData);
         saveToLocal({ rawLogChanged: true });
     }
 
@@ -4413,7 +4941,36 @@
             imports.push(parseDiscordHtmlToImport(htmlText, file.name, usedChannelKeys, { htmlFile: file }));
         }
 
-        finishDiscordImport(imports);
+        await finishDiscordImport(imports);
+    }
+
+    async function importCompactDiscordHtmlFiles(files) {
+        resetImportedLogState();
+        const usedChannelKeys = new Set(Object.keys(channelConfigs));
+        const imports = [];
+
+        for (const file of files) {
+            const htmlText = await readHtmlFileAsText(file);
+            imports.push(await parseCompactDiscordHtmlToImport(htmlText, file.name, usedChannelKeys, { htmlFile: file }));
+        }
+
+        const allItems = imports.flatMap(item => item.items);
+        rawLogData = sortLogItems(allItems);
+        setDiscordChannelOrderByFirstMessageTime();
+
+        globalTimeDisplayMode = 'none';
+        globalShowTime = false;
+        const globalShowTimeEl = document.getElementById('global-show-time');
+        if (globalShowTimeEl) globalShowTimeEl.checked = false;
+
+        activeChannelTab = rawLogData[0]?.ch || '[main]';
+        showImportedOutput();
+        liveUpdateHeader();
+        renderConfigPanel();
+        liveRenderLog();
+
+        await saveRawLogDataToIndexedDB(rawLogData);
+        saveToLocal({ rawLogChanged: true });
     }
 
     async function importDiscordFolderFiles(files) {
@@ -4446,12 +5003,13 @@
         const assetSaveResult = await drainPendingAssetSaves();
         if (assetSaveResult.failedCount > 0) {
             console.warn(`${assetSaveResult.failedCount} local Discord image asset(s) failed to save.`);
+            alert('\u6709 ' + assetSaveResult.failedCount + ' \u5f35 Discord \u5716\u7247\u672a\u6210\u529f\u5b58\u5165\u700f\u89bd\u5668\u8cc7\u6599\u5eab\uff0c\u91cd\u65b0\u6574\u7406\u6216\u91cd\u65b0\u958b\u555f\u9801\u9762\u5f8c\u53ef\u80fd\u7121\u6cd5\u986f\u793a\u3002');
         }
 
-        finishDiscordImport(imports);
+        await finishDiscordImport(imports);
     }
 
-    function importCcfOliaHtmlText(htmlText) {
+    async function importCcfOliaHtmlText(htmlText) {
         resetImportedLogState();
         const currentTheme = getValidTheme(document.body.getAttribute('data-theme'));
         const doc = new DOMParser().parseFromString(htmlText, 'text/html');
@@ -4463,8 +5021,8 @@
                 let name = spans[1].innerText.trim();
                 if (ch && !channelConfigs[ch]) {
                     let finalLabel = ch.replace(/[\[\]]/g, '');
-                    if (finalLabel.toLowerCase() === 'info') finalLabel = '?';
-                    else if (finalLabel.toLowerCase() === 'other') finalLabel = '??';
+                    if (finalLabel.toLowerCase() === 'info') finalLabel = '情報';
+                    else if (finalLabel.toLowerCase() === 'other') finalLabel = '雜談';
                     channelConfigs[ch] = { label: finalLabel, bgColor: (ch === '[info]') ? THEME_PRESETS[currentTheme].infoBg : (ch === '[other]') ? THEME_PRESETS[currentTheme].otherBg : THEME_PRESETS[currentTheme].customBg, checked: (ch !== '[other]') };
                 }
                 const rawHtml = spans[2].innerHTML || '';
@@ -4497,12 +5055,14 @@
         });
 
         renderConfigPanel();
+        await saveRawLogDataToIndexedDB(rawLogData);
         saveToLocal({ rawLogChanged: true });
     }
 
     document.getElementById('html-file').addEventListener('change', async e => {
         const file = e.target.files[0]; if (!file) return;
         const files = Array.from(e.target.files || []);
+        const shouldClearAssets = shouldClearAssetsForReplacingImport();
         if (!confirmBeforeReplacingImport()) {
             e.target.value = '';
             return;
@@ -4521,132 +5081,76 @@
             const hasToolExport = loadedFiles.some(item => item.source === 'tool');
             const hasDiscord = loadedFiles.some(item => item.source === 'discord');
             const hasCcfOlia = loadedFiles.some(item => item.source === 'ccfolia');
+            const hasCompactDiscord = loadedFiles.some(item => item.source === 'discordCompact');
 
             if (hasToolExport) {
-                if (files.length > 1 || hasDiscord || hasCcfOlia) {
-                    alert('工具匯出的 HTML 請單獨匯入，請不要與其他 HTML 混合上傳。');
+                if (files.length > 1 || hasDiscord || hasCcfOlia || hasCompactDiscord) {
+                    alert('\u5de5\u5177\u532f\u51fa\u7684 HTML \u8acb\u55ae\u7368\u532f\u5165\uff0c\u8acb\u4e0d\u8981\u8207\u5176\u4ed6 HTML \u6df7\u5408\u4e0a\u50b3\u3002');
                     e.target.value = '';
                     return;
                 }
-                importToolExportHtmlText(loadedFiles[0].htmlText);
+                await importToolExportHtmlText(loadedFiles[0].htmlText, {
+                    clearAssetsBeforeImport: shouldClearAssets
+                });
+                e.target.value = '';
+                return;
+            }
+
+            if (hasCompactDiscord && (hasDiscord || hasCcfOlia)) {
+                alert('請不要混合上傳不同格式的 HTML，請分開匯入。');
+                e.target.value = '';
+                return;
+            }
+
+            if (hasCompactDiscord) {
+                await clearAssetsForReplacingImport(shouldClearAssets);
+                await importCompactDiscordHtmlFiles(files);
                 e.target.value = '';
                 return;
             }
 
             if (hasDiscord && hasCcfOlia) {
-                alert('請不要混合上傳 Discord 與 CCFOLIA HTML，請分開匯入。');
+                alert('\u8acb\u4e0d\u8981\u6df7\u5408\u4e0a\u50b3 Discord \u8207 CCFOLIA HTML\uff0c\u8acb\u5206\u958b\u532f\u5165\u3002');
                 e.target.value = '';
                 return;
             }
 
             if (hasDiscord) {
+                await clearAssetsForReplacingImport(shouldClearAssets);
                 await importDiscordHtmlFiles(files);
                 e.target.value = '';
                 return;
             }
 
             if (files.length > 1) {
-                alert('目前不支援多個 CCFOLIA HTML 合併，將只匯入第一個檔案。');
+                alert('\u76ee\u524d\u4e0d\u652f\u63f4\u591a\u500b CCFOLIA HTML \u5408\u4f75\uff0c\u5c07\u53ea\u532f\u5165\u7b2c\u4e00\u500b\u6a94\u6848\u3002');
             }
 
-            importCcfOliaHtmlText(loadedFiles[0].htmlText);
+            await clearAssetsForReplacingImport(shouldClearAssets);
+            await importCcfOliaHtmlText(loadedFiles[0].htmlText);
         } catch (err) {
             console.error('HTML import failed:', err);
-            alert('HTML 匯入失敗，請檢查檔案格式。');
+            alert('HTML \u532f\u5165\u5931\u6557\uff0c\u8acb\u6aa2\u67e5\u6a94\u6848\u683c\u5f0f\u3002');
         }
 
         e.target.value = '';
-        return;
-        const reader = new FileReader();
-        reader.onload = ev => {
-            const htmlText = ev.target.result;
-            const source = detectLogSource(htmlText);
-            charColorMap = {}; detectedCharColorMap = {}; manualCharColorMap = {}; charNameVisibilityMap = {}; channelConfigs = {}; channelOrder = []; discordOtherChannels = []; rawLogData = [];
-            const currentTheme = getValidTheme(document.body.getAttribute('data-theme'));
-            charColorMap["KP（空白）"] = THEME_PRESETS[currentTheme].kpText;
-
-            if (source === 'discord') {
-                rawLogData = sortLogItems(parseDiscordHtmlToRawLogData(htmlText));
-                setDiscordChannelOrderByFirstMessageTime();
-                const discordMeta = parseDiscordHtmlToRawLogData.discordMeta || {};
-                if (!document.getElementById('scenario-name').value.trim() && discordMeta.guildName) {
-                    document.getElementById('scenario-name').value = discordMeta.guildName;
-                }
-
-                const globalShowTimeEl = document.getElementById('global-show-time');
-                globalTimeDisplayMode = 'none';
-                globalShowTime = false;
-                if (globalShowTimeEl) globalShowTimeEl.checked = false;
-
-                activeChannelTab = rawLogData[0]?.ch || '[main]';
-                renderConfigPanel();
-                document.getElementById('output').style.display = 'block';
-                document.getElementById('action-area').style.display = 'flex';
-                document.getElementById('view-mode-btn').style.display = 'block';
-                liveUpdateHeader();
-                liveRenderLog();
-                saveToLocal({ rawLogChanged: true });
-                return;
-            }
-
-            const doc = new DOMParser().parseFromString(htmlText, 'text/html');
-            doc.querySelectorAll('p').forEach(p => {
-                const spans = p.querySelectorAll('span');
-                if (spans.length >= 3) {
-                    const ch = spans[0].innerText.trim();
-                    let name = spans[1].innerText.trim();
-                    if (ch && !channelConfigs[ch]) {
-                        let finalLabel = ch.replace(/[\[\]]/g, '');
-                        if (finalLabel.toLowerCase() === 'info') finalLabel = '情報';
-                        else if (finalLabel.toLowerCase() === 'other') finalLabel = '雜談';
-                        channelConfigs[ch] = { label: finalLabel, bgColor: (ch === '[info]') ? THEME_PRESETS[currentTheme].infoBg : (ch === '[other]') ? THEME_PRESETS[currentTheme].otherBg : THEME_PRESETS[currentTheme].customBg, checked: (ch !== '[other]') };
-                    }
-                    const rawHtml = spans[2].innerHTML || '';
-                    let normalizedText = normalizeImportedText(rawHtml);
-
-                    if (name === "system") {
-                        const systemSpeaker = extractSystemSpeaker(normalizedText);
-                        if (systemSpeaker) {
-                            name = systemSpeaker.name;
-                            normalizedText = systemSpeaker.text;
-                        }
-                    }
-
-                    const detectedColor = rgbToHex(p.style.color) || "#4a4a4a";
-                    if (name && name !== "system") {
-                        if (!detectedCharColorMap[name]) detectedCharColorMap[name] = detectedColor;
-                        if (!charColorMap[name]) charColorMap[name] = detectedColor;
-                        if (charNameVisibilityMap[name] === undefined) charNameVisibilityMap[name] = true;
-                    }
-
-                    rawLogData.push({
-                        ch,
-                        name,
-                        html: normalizedText,
-                        detectedColor,
-                        showInTOC: false,
-                        tocTitle: ''
-                    });
-                }
-            });
-            renderConfigPanel(); saveToLocal({ rawLogChanged: true });
-        };
-        reader.readAsText(file, "UTF-8");
     });
 
     document.getElementById('discord-folder-input')?.addEventListener('change', async e => {
         const files = Array.from(e.target.files || []);
         if (!files.length) return;
+        const shouldClearAssets = shouldClearAssetsForReplacingImport();
         if (!confirmBeforeReplacingImport()) {
             e.target.value = '';
             return;
         }
 
         try {
+            await clearAssetsForReplacingImport(shouldClearAssets);
             await importDiscordFolderFiles(files);
         } catch (err) {
             console.error('Discord folder import failed:', err);
-            alert('Discord 資料夾匯入失敗，請檢查資料夾內容。');
+            alert('Discord \u8cc7\u6599\u593e\u532f\u5165\u5931\u6557\uff0c\u8acb\u6aa2\u67e5\u8cc7\u6599\u593e\u5167\u5bb9\u3002');
         } finally {
             e.target.value = '';
         }
@@ -5169,25 +5673,42 @@
         input.type = 'file';
         input.accept = 'image/*';
 
-        input.addEventListener('change', () => {
+        input.addEventListener('change', async () => {
             const file = input.files && input.files[0];
             if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = e => {
+            const assetId = makeAssetIdForFile(file);
+
+            try {
+                await saveAssetBlobToIndexedDB(assetId, file, {
+                    name: file.name || '',
+                    type: file.type || '',
+                    size: file.size || 0,
+                    assetPath: file.name || ''
+                });
+
                 const newIndex = index + 1;
                 const newItem = {
                     type: 'image',
                     ch: source.ch,
                     name: source.name,
                     html: '',
-                    src: e.target.result,
+                    src: '',
+                    assetId,
+                    assetPath: file.name || '',
+                    originalSrc: file.name || '',
+                    isLocalAsset: true,
+                    isStoredAsset: true,
+                    isBlobUrl: false,
+                    isDataUrl: false,
+                    missingLocalAsset: false,
                     alt: file.name || '插入圖片',
                     align: 'center',
                     splitBefore: true,
                     showInTOC: false,
                     tocTitle: ''
                 };
+                newItem.exportImageKey = generateExportImageKey(newItem, newIndex);
 
                 rawLogData.splice(newIndex, 0, newItem);
                 activeIndex = newIndex;
@@ -5196,9 +5717,10 @@
 
                 rerenderKeepViewport();
                 saveToLocal({ rawLogChanged: true });
-            };
-
-            reader.readAsDataURL(file);
+            } catch (err) {
+                console.error('Manual image asset save failed:', err);
+                alert('\u5716\u7247\u7121\u6cd5\u5b58\u5165\u700f\u89bd\u5668\u8cc7\u6599\u5eab\uff0c\u8acb\u78ba\u8a8d\u700f\u89bd\u5668\u5132\u5b58\u7a7a\u9593\u662f\u5426\u8db3\u5920\u3002');
+            }
         });
 
         input.click();
