@@ -138,6 +138,105 @@
             --bar-bg: #F9DBC4;
         }
 
+        [data-theme="deepsea-night"] {
+            --bg-color: #111B24;
+            --container-bg: #1B2934;
+            --primary-color: #8FB4C7;
+            --secondary-color: #5D8194;
+            --text-color: #D2DEE4;
+            --border-color: #354956;
+            --bar-bg: #17232D;
+        }
+
+        [data-theme="midnight-purple"] {
+            --bg-color: #1B1821;
+            --container-bg: #26212D;
+            --primary-color: #B8A7C9;
+            --secondary-color: #8E789F;
+            --text-color: #DDD6E5;
+            --border-color: #403849;
+            --bar-bg: #211C29;
+        }
+
+        [data-theme="forest-night"] {
+            --bg-color: #151C19;
+            --container-bg: #202A24;
+            --primary-color: #A6B99E;
+            --secondary-color: #708579;
+            --text-color: #D8E0D7;
+            --border-color: #3B4A40;
+            --bar-bg: #1B241F;
+        }
+
+        [data-theme="wine-night"] {
+            --bg-color: #21171B;
+            --container-bg: #2D2026;
+            --primary-color: #D2A0A8;
+            --secondary-color: #9B6974;
+            --text-color: #E6D8DA;
+            --border-color: #4B343C;
+            --bar-bg: #281C22;
+        }
+
+        [data-theme="deepsea-night"] .color-pill,
+        [data-theme="midnight-purple"] .color-pill,
+        [data-theme="forest-night"] .color-pill,
+        [data-theme="wine-night"] .color-pill {
+            background: var(--container-bg);
+        }
+
+        [data-theme="deepsea-night"] .mode-switcher,
+        [data-theme="deepsea-night"] .discord-other-setting,
+        [data-theme="deepsea-night"] .item-meta-editor,
+        [data-theme="deepsea-night"] .toc-inline-editor,
+        [data-theme="midnight-purple"] .mode-switcher,
+        [data-theme="midnight-purple"] .discord-other-setting,
+        [data-theme="midnight-purple"] .item-meta-editor,
+        [data-theme="midnight-purple"] .toc-inline-editor,
+        [data-theme="forest-night"] .mode-switcher,
+        [data-theme="forest-night"] .discord-other-setting,
+        [data-theme="forest-night"] .item-meta-editor,
+        [data-theme="forest-night"] .toc-inline-editor,
+        [data-theme="wine-night"] .mode-switcher,
+        [data-theme="wine-night"] .discord-other-setting,
+        [data-theme="wine-night"] .item-meta-editor,
+        [data-theme="wine-night"] .toc-inline-editor {
+            background: color-mix(in srgb, var(--container-bg) 82%, var(--bg-color));
+            border-color: var(--border-color);
+        }
+
+        [data-theme="deepsea-night"] .floating-boundary-hint button,
+        [data-theme="deepsea-night"] .floating-insert-line span,
+        [data-theme="deepsea-night"] .log-item.move-source::before,
+        [data-theme="midnight-purple"] .floating-boundary-hint button,
+        [data-theme="midnight-purple"] .floating-insert-line span,
+        [data-theme="midnight-purple"] .log-item.move-source::before,
+        [data-theme="forest-night"] .floating-boundary-hint button,
+        [data-theme="forest-night"] .floating-insert-line span,
+        [data-theme="forest-night"] .log-item.move-source::before,
+        [data-theme="wine-night"] .floating-boundary-hint button,
+        [data-theme="wine-night"] .floating-insert-line span,
+        [data-theme="wine-night"] .log-item.move-source::before {
+            background: var(--container-bg);
+            color: var(--primary-color);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="deepsea-night"] .toc-item:hover,
+        [data-theme="deepsea-night"] .speaker-option:hover,
+        [data-theme="deepsea-night"] .speaker-option.active,
+        [data-theme="midnight-purple"] .toc-item:hover,
+        [data-theme="midnight-purple"] .speaker-option:hover,
+        [data-theme="midnight-purple"] .speaker-option.active,
+        [data-theme="forest-night"] .toc-item:hover,
+        [data-theme="forest-night"] .speaker-option:hover,
+        [data-theme="forest-night"] .speaker-option.active,
+        [data-theme="wine-night"] .toc-item:hover,
+        [data-theme="wine-night"] .speaker-option:hover,
+        [data-theme="wine-night"] .speaker-option.active {
+            background: color-mix(in srgb, var(--primary-color) 18%, var(--container-bg));
+        }
+
         @media print {
             @page {
                 margin: 1.2cm;
@@ -1341,6 +1440,10 @@
     <option value="softpink">玫瑰灰</option>
     <option value="red">酒紅</option>
     <option value="contrast">深海藍</option>
+    <option value="deepsea-night">深海夜色</option>
+    <option value="midnight-purple">午夜紫</option>
+    <option value="forest-night">森林夜色</option>
+    <option value="wine-night">酒紅夜幕</option>
 </select>
 <button class="view-mode-switch no-print" id="view-mode-btn" onclick="toggleLogViewMode()" style="display:none;">切換分頻道模式</button>
 
@@ -1414,8 +1517,8 @@
                 顯示時間
             </label>
 
-            <button type="button" class="mini-action-btn" onclick="applyMonochromeTextColors()">
-                文字顏色統一
+            <button type="button" class="mini-action-btn" onclick="applyMonochromeAllColors()">
+                全部文字統一為預設色
             </button>
 
             <button type="button" class="mini-action-btn" onclick="redetectTextColors()">
@@ -1434,6 +1537,9 @@
                 <div id="discord-other-options"></div>
                 
                 <div class="config-title">角色對話顏色調整</div>
+                <button type="button" class="mini-action-btn" onclick="applyMonochromeTextColors()" style="margin-bottom:14px;">
+                    所有對話內容統一為預設色
+                </button>
                 <div id="character-colors" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;"></div>
             </div>
         </details>
@@ -1469,8 +1575,11 @@
     const EXPORT_DATA_SCRIPT_ID = 'coc-trpg-log-export-data';
 
     let charColorMap = {};
+    let charTextColorMap = {};
     let detectedCharColorMap = {};
+    let detectedCharTextColorMap = {};
     let manualCharColorMap = {};
+    let manualCharTextColorMap = {};
     let charNameVisibilityMap = {};
     let channelConfigs = {};
     let rawLogData = [];
@@ -1663,16 +1772,20 @@
     
 
     const THEME_PRESETS = {
-        light: { kpText: "#4a4a4a", infoBg: "#f9f9f9", otherBg: "#cfdbe3", customBg: "#f9f9f9" },
-        dark: { kpText: "#d1d1d1", infoBg: "#2a2a2a", otherBg: "#1e2a33", customBg: "#1e1e1e" },
-        blue: { kpText: "#545051", infoBg: "#F2F4FB", otherBg: "#E7ECFA", customBg: "#FBFCFF" },
-        brown: { kpText: "#5F403B", infoBg: "#F7F1E7", otherBg: "#EADDD8", customBg: "#FFFDF7" },
-        gray: { kpText: "#47362B", infoBg: "#F5F5F5", otherBg: "#E8E4E1", customBg: "#FFFFFF" },
-        pastel: { kpText: "#4D5058", infoBg: "#F7F0F6", otherBg: "#FDE8EC", customBg: "#FFFFFF" },
-        green: { kpText: "#283B51", infoBg: "#F1F8E1", otherBg: "#E7F1DD", customBg: "#FFFFFF" },
-        softpink: { kpText: "#4D5058", infoBg: "#FAEEE9", otherBg: "#F4D7D7", customBg: "#FFFFFF" },
-        red: { kpText: "#54090C", infoBg: "#FBE7E8", otherBg: "#F4D1D2", customBg: "#FFF9F9" },
-        contrast: { kpText: "#2C2E3E", infoBg: "#F9DBC4", otherBg: "#F4E0D2", customBg: "#FFFFFF" }
+        light: { isDark: false, kpText: "#404040", infoBg: "#f9f9f9", otherBg: "#cfdbe3", customBg: "#f9f9f9" },
+        dark: { isDark: true, kpText: "#D1D5DB", infoBg: "#2a2a2a", otherBg: "#1e2a33", customBg: "#1e1e1e" },
+        blue: { isDark: false, kpText: "#404040", infoBg: "#F2F4FB", otherBg: "#E7ECFA", customBg: "#FBFCFF" },
+        brown: { isDark: false, kpText: "#404040", infoBg: "#F7F1E7", otherBg: "#EADDD8", customBg: "#FFFDF7" },
+        gray: { isDark: false, kpText: "#404040", infoBg: "#F5F5F5", otherBg: "#E8E4E1", customBg: "#FFFFFF" },
+        pastel: { isDark: false, kpText: "#404040", infoBg: "#F7F0F6", otherBg: "#FDE8EC", customBg: "#FFFFFF" },
+        green: { isDark: false, kpText: "#404040", infoBg: "#F1F8E1", otherBg: "#E7F1DD", customBg: "#FFFFFF" },
+        softpink: { isDark: false, kpText: "#404040", infoBg: "#FAEEE9", otherBg: "#F4D7D7", customBg: "#FFFFFF" },
+        red: { isDark: false, kpText: "#404040", infoBg: "#FBE7E8", otherBg: "#F4D1D2", customBg: "#FFF9F9" },
+        contrast: { isDark: false, kpText: "#404040", infoBg: "#F9DBC4", otherBg: "#F4E0D2", customBg: "#FFFFFF" },
+        "deepsea-night": { isDark: true, kpText: "#D1D5DB", infoBg: "#22333F", otherBg: "#263B49", customBg: "#1B2934" },
+        "midnight-purple": { isDark: true, kpText: "#D1D5DB", infoBg: "#302A38", otherBg: "#382F42", customBg: "#26212D" },
+        "forest-night": { isDark: true, kpText: "#D1D5DB", infoBg: "#29362E", otherBg: "#2D3C32", customBg: "#202A24" },
+        "wine-night": { isDark: true, kpText: "#D1D5DB", infoBg: "#3A292F", otherBg: "#432C34", customBg: "#2D2026" }
     };
 
     window.onload = async function() {
@@ -2193,7 +2306,7 @@
         const targetKey = 'KP（空白）';
         let changed = false;
 
-        [charColorMap, detectedCharColorMap, manualCharColorMap, charNameVisibilityMap].forEach(map => {
+        [charColorMap, charTextColorMap, detectedCharColorMap, detectedCharTextColorMap, manualCharColorMap, manualCharTextColorMap, charNameVisibilityMap].forEach(map => {
             if (!map || !Object.prototype.hasOwnProperty.call(map, legacyKey)) return;
 
             if (!Object.prototype.hasOwnProperty.call(map, targetKey)) {
@@ -2215,6 +2328,27 @@
             hash >>>= 0;
         }
         return hash.toString(36);
+    }
+
+    function ensureCharacterColors(name, detectedColor = '') {
+        if (!name || name === 'system') return;
+        if (!charColorMap[name]) {
+            charColorMap[name] = detectedCharColorMap[name] || detectedColor || charColorMap['KP（空白）'] || getDefaultLogTextColor();
+        }
+        if (!charTextColorMap[name]) {
+            charTextColorMap[name] = charColorMap[name];
+        }
+    }
+
+    function ensureCharacterTextColors() {
+        Object.keys(charColorMap).forEach(name => {
+            if (!Object.prototype.hasOwnProperty.call(charTextColorMap, name)) {
+                charTextColorMap[name] = charColorMap[name];
+            }
+        });
+        rawLogData.forEach(item => {
+            if (item && item.type !== 'image') ensureCharacterColors(item.name, item.detectedColor);
+        });
     }
 
     function makeAssetIdForFile(file) {
@@ -2607,7 +2741,7 @@
             globalShowTime: globalTimeDisplayMode !== 'none',
             globalTimeDisplayMode,
             imgSrc: getPersistableImageSrc(),
-            charColorMap, detectedCharColorMap, manualCharColorMap, charNameVisibilityMap, channelConfigs, discordOtherChannels,
+            charColorMap, charTextColorMap, detectedCharColorMap, detectedCharTextColorMap, manualCharColorMap, manualCharTextColorMap, charNameVisibilityMap, channelConfigs, discordOtherChannels,
             isOutputVisible: document.getElementById('output').style.display === 'block'
         };
     }
@@ -2667,12 +2801,16 @@
         const globalShowTimeEl = document.getElementById('global-show-time');
         if (globalShowTimeEl) globalShowTimeEl.checked = globalShowTime;
         charColorMap = data.charColorMap || {};
+        charTextColorMap = data.charTextColorMap ? { ...data.charTextColorMap } : { ...charColorMap };
         detectedCharColorMap = data.detectedCharColorMap || {};
+        detectedCharTextColorMap = data.detectedCharTextColorMap || {};
         manualCharColorMap = data.manualCharColorMap || {};
+        manualCharTextColorMap = data.manualCharTextColorMap || {};
         charNameVisibilityMap = data.charNameVisibilityMap || {};
         channelConfigs = data.channelConfigs || {};
         discordOtherChannels = Array.isArray(data.discordOtherChannels) ? data.discordOtherChannels : [];
         const migratedLegacyKpBlankKey = migrateLegacyKpBlankColorKey();
+        ensureCharacterTextColors();
 
         let loadedIntroImageSrc = data.imgSrc || '';
         if (data.imgSrc?.startsWith?.('data:image/')) {
@@ -3361,19 +3499,33 @@
 
     function toggleTheme() {
         const currentTheme = getValidTheme(document.body.getAttribute('data-theme'));
-        setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        setTheme(THEME_PRESETS[currentTheme].isDark ? 'light' : 'dark');
     }
 
     function updateColorsToTheme(theme) {
         const preset = THEME_PRESETS[getValidTheme(theme)];
         const defaultTextColor = getDefaultLogTextColor(theme);
-        charColorMap["KP（空白）"] = preset.kpText;
+        const kpKey = "KP（空白）";
+        const explicitTextColorSamples = new Map();
+        rawLogData.forEach(item => {
+            if (!item || item.type === 'image' || !item.name || item.name === 'system') return;
+            if (!item.sourceTextColorExplicit || !item.sourceTextColorExplicitValue) return;
+            addDetectedColorSample(explicitTextColorSamples, item.name, item.sourceTextColorExplicitValue);
+        });
+        detectedCharTextColorMap = getMostFrequentDetectedColors(explicitTextColorSamples);
+
+        if (!manualCharColorMap[kpKey]) charColorMap[kpKey] = defaultTextColor;
         Object.keys(charColorMap).forEach(name => {
-            if (name === "KP（空白）") return;
+            if (name === kpKey) return;
             if (manualCharColorMap[name]) return;
             if (detectedCharColorMap[name]) return;
             charColorMap[name] = defaultTextColor;
         });
+        Object.keys(charColorMap).forEach(name => {
+            if (manualCharTextColorMap[name]) return;
+            charTextColorMap[name] = detectedCharTextColorMap[name] || defaultTextColor;
+        });
+        if (!manualCharTextColorMap[kpKey]) charTextColorMap[kpKey] = defaultTextColor;
         Object.keys(channelConfigs).forEach(ch => {
             const conf = channelConfigs[ch];
             conf.bgColor = (ch === '[info]') ? preset.infoBg : isOtherChannel(ch) ? preset.otherBg : preset.customBg;
@@ -3382,7 +3534,8 @@
     }
 
     function getDefaultLogTextColor(theme = document.body.getAttribute('data-theme')) {
-        return THEME_PRESETS[getValidTheme(theme)]?.kpText || '#4a4a4a';
+        const preset = THEME_PRESETS[getValidTheme(theme)];
+        return preset?.isDark ? '#D1D5DB' : '#404040';
     }
 
     function makeEditable(index) {
@@ -3509,6 +3662,7 @@
     function liveRenderLog() {
         const out = document.getElementById('out-content'); 
         out.innerHTML = '';
+        ensureCharacterTextColors();
         renderChannelTabs();
         const globalShowName = document.getElementById('global-show-name')?.checked;
         syncTimeDisplayControls();
@@ -3556,7 +3710,9 @@
                 wrap.classList.add('move-source');
             }
 
-            const displayColor = (item.name === "" || item.name === "system") ? (charColorMap["KP（空白）"] || getDefaultLogTextColor()) : (charColorMap[item.name] || getDefaultLogTextColor());
+            const colorKey = (item.name === "" || item.name === "system") ? "KP（空白）" : item.name;
+            const displayColor = charColorMap[colorKey] || getDefaultLogTextColor();
+            const textColor = charTextColorMap[colorKey] || displayColor || getDefaultLogTextColor();
             const isNameVisibleForChar = item.name && charNameVisibilityMap[item.name] !== false;
             const shouldShowName = !!(globalShowName && item.name && item.name !== "system" && isNameVisibleForChar);
             const shouldShowTime = shouldDisplayItemTime(item);
@@ -3564,7 +3720,7 @@
             const nameLabel = (shouldShowName || shouldShowTime) ? `<span class="char-name-label" style="color:${displayColor}">${shouldShowName ? escapeAttr(item.name) : ''}${timeLabel}</span>` : '';
             const parsedContent = parseCustomMarkdown(item.html);
             const alignStyle = item.align === "center" ? "text-align:center;" : "";
-            const textHTML = `<div class="text-content" >${parsedContent}</div>`;
+            const textHTML = `<div class="text-content" style="color:${textColor};">${parsedContent}</div>`;
 
             let contentHTML = '';
             let renderType = 'main';
@@ -3594,7 +3750,7 @@
             }
             else if (logViewMode === 'channel') {
                 renderType = 'main';
-                contentHTML = `<div class="log-line" style="${alignStyle} color:${displayColor};">${nameLabel}${textHTML}</div>`;
+                contentHTML = `<div class="log-line" style="${alignStyle} color:${textColor};">${nameLabel}${textHTML}</div>`;
             }
             // 處理 [main] 頻道與結局偵測
             else if (item.ch === '[main]') {
@@ -3607,15 +3763,15 @@
                 if (isKPOrSystem && hasKeyWord && noMarkers && rawMainText.trim() !== "") {
                     renderType = 'ending';
                     const endingHTML = `<span class="text-content">${parseCustomMarkdown(rawMainText)}</span>`;
-                    contentHTML = `<div class="log-line ending-text" style="color:${displayColor}; text-align:center; font-weight:900; font-size:1.3em; background:rgba(128,128,128,0.08); border-radius:10px; border-top:2px solid ${displayColor}; border-bottom:2px solid ${displayColor}; letter-spacing:3px;">${endingHTML}</div>`;
+                    contentHTML = `<div class="log-line ending-text" style="color:${textColor}; text-align:center; font-weight:900; font-size:1.3em; background:rgba(128,128,128,0.08); border-radius:10px; border-top:2px solid ${displayColor}; border-bottom:2px solid ${displayColor}; letter-spacing:3px;">${endingHTML}</div>`;
                 } else {
                     renderType = 'main';
-                    contentHTML = `<div class="log-line" style="${alignStyle} color:${displayColor};">${nameLabel}${textHTML}</div>`;
+                    contentHTML = `<div class="log-line" style="${alignStyle} color:${textColor};">${nameLabel}${textHTML}</div>`;
                 }
             }
             else if (isOtherChannel(item.ch)) {
                 renderType = 'other';
-                contentHTML = `<div class="other-bubble" style="background-color:${conf.bgColor}; color:${displayColor}; text-align:right;">${nameLabel}${textHTML}</div>`;
+                contentHTML = `<div class="other-bubble" style="background-color:${conf.bgColor}; color:${textColor}; text-align:right;">${nameLabel}${textHTML}</div>`;
             }
           
             // 處理其餘區塊頻道 (如：情報、系統、自訂標籤)
@@ -3640,7 +3796,7 @@
                         data-channel="${item.ch}"
                         data-tag-name="${label}"
                         data-split="${item.splitBefore ? 'true' : 'false'}"
-                        style="background-color:${conf.bgColor}; color:${displayColor}; border-left-color:${dynamicColor} !important;">
+                        style="background-color:${conf.bgColor}; color:${textColor}; border-left-color:${dynamicColor} !important;">
                         <span class="info-tag" style="color:${dynamicColor} !important;">${label}</span>
                         ${nameLabel}
                         <div class="text-content" style="${alignStyle}">${parsedContent}</div>
@@ -3817,9 +3973,7 @@
         const didChange = item.name !== nextName;
         item.name = nextName;
 
-        if (nextName && nextName !== 'system' && !charColorMap[nextName]) {
-            charColorMap[nextName] = detectedCharColorMap[nextName] || item.detectedColor || charColorMap["KP（空白）"] || getDefaultLogTextColor();
-        }
+        ensureCharacterColors(nextName, item.detectedColor);
         if (nextName && nextName !== 'system' && charNameVisibilityMap[nextName] === undefined) {
             charNameVisibilityMap[nextName] = true;
         }
@@ -4275,13 +4429,20 @@
         setIntroImagePreview(settings.imgSrc || (isReaderExport ? payload.readerIntroImageSrc : '') || '');
 
         charColorMap = settings.charColorMap || {};
+        charTextColorMap = settings.charTextColorMap ? { ...settings.charTextColorMap } : { ...charColorMap };
         detectedCharColorMap = settings.detectedCharColorMap || {};
+        detectedCharTextColorMap = settings.detectedCharTextColorMap || {};
         manualCharColorMap = settings.manualCharColorMap || {};
+        manualCharTextColorMap = settings.manualCharTextColorMap || {};
         charNameVisibilityMap = settings.charNameVisibilityMap || {};
         channelConfigs = settings.channelConfigs || {};
         discordOtherChannels = Array.isArray(settings.discordOtherChannels) ? settings.discordOtherChannels : [];
         migrateLegacyKpBlankColorKey();
         let importedRawLogData = Array.isArray(payload.rawLogData) ? payload.rawLogData : [];
+        importedRawLogData.forEach(item => {
+            if (item && item.type !== 'image') ensureCharacterColors(item.name, item.detectedColor);
+        });
+        ensureCharacterTextColors();
 
         if (options.clearAssetsBeforeImport) {
             await clearAssetsForReplacingImport(true);
@@ -4516,6 +4677,7 @@
 
     async function parseCompactDiscordHtmlToRawLogData(htmlText, options = {}) {
         const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+        const sourceCssRules = getSourceCssRules(doc);
         const meta = getCompactDiscordMeta(doc);
         const channelName = options.channelName || meta.channelName || 'Discord';
         const ch = options.ch || `[dcx:${channelName}]`;
@@ -4534,7 +4696,11 @@
 
         for (let msgIndex = 0; msgIndex < messages.length; msgIndex++) {
             const msg = messages[msgIndex];
-            const name = msg.querySelector('.nm')?.textContent?.trim() || 'Discord';
+            const nameEl = msg.querySelector('.nm');
+            const contentEl = msg.querySelector('.tx');
+            const name = nameEl?.textContent?.trim() || 'Discord';
+            const sourceNameColor = getSourceElementColor(nameEl, msg, sourceCssRules);
+            const sourceTextColor = getSourceElementColor(contentEl, msg, sourceCssRules);
             if (name && name !== 'system') {
                 const detectedColor = '#4a4a4a';
                 if (!detectedCharColorMap[name]) {
@@ -4543,13 +4709,13 @@
                 if (!charColorMap[name]) {
                     charColorMap[name] = detectedColor || charColorMap['KP（空白）'] || getDefaultLogTextColor();
                 }
+                ensureCharacterColors(name, detectedColor);
                 if (charNameVisibilityMap[name] === undefined) {
                     charNameVisibilityMap[name] = true;
                 }
             }
             const timeText = msg.querySelector('.ts')?.textContent?.trim() || '';
             const timestamp = parseCompactDiscordTimestamp(timeText);
-            const contentEl = msg.querySelector('.tx');
             const markdown = contentEl ? compactDiscordHtmlToCustomMarkdown(contentEl).trim() : '';
             const messageId = `compact_${stableHashText(`${ch}|${timeText}|${name}|${msgIndex}`)}`;
             const base = {
@@ -4563,6 +4729,8 @@
                 timestamp: Number.isFinite(timestamp) ? timestamp : null,
                 messageId,
                 detectedColor: '#4a4a4a',
+                sourceNameColor,
+                sourceTextColor,
                 subOrder: 0,
                 showInTOC: false,
                 tocTitle: ''
@@ -4648,6 +4816,7 @@
 
     function parseDiscordHtmlToRawLogData(htmlText, options = {}) {
         const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+        const sourceCssRules = getSourceCssRules(doc);
         const meta = getDiscordMeta(doc);
         const channelName = options.channelName || meta.channelName || 'Discord';
         const ch = options.ch || `[dc:${channelName}]`;
@@ -4678,12 +4847,14 @@
                 lastAuthor = {
                     name,
                     originalAuthorName: name,
-                    detectedColor
+                    detectedColor,
+                    sourceNameColor: detectedColor || getSourceElementColor(authorEl, container, sourceCssRules)
                 };
 
                 if (name) {
                     if (detectedColor && !detectedCharColorMap[name]) detectedCharColorMap[name] = detectedColor;
                     if (!charColorMap[name]) charColorMap[name] = detectedColor || charColorMap["KP（空白）"] || getDefaultLogTextColor();
+                    ensureCharacterColors(name, detectedColor);
                     if (charNameVisibilityMap[name] === undefined) charNameVisibilityMap[name] = true;
                 }
             }
@@ -4701,6 +4872,7 @@
 
             const contentEl = container.querySelector('.chatlog__content, .chatlog__markdown');
             const markdown = discordHtmlToCustomMarkdown(contentEl).trim();
+            const sourceTextColor = getSourceElementColor(contentEl, container, sourceCssRules);
             const base = {
                 source: 'discord',
                 ch,
@@ -4712,6 +4884,8 @@
                 timestamp: Number.isFinite(timestamp) ? timestamp : lastTimestamp,
                 messageId,
                 detectedColor: author.detectedColor || '#4a4a4a',
+                sourceNameColor: author.sourceNameColor || '',
+                sourceTextColor,
                 showInTOC: false,
                 tocTitle: ''
             };
@@ -4865,8 +5039,11 @@
     function resetImportedLogState() {
         revokeActiveBlobUrls();
         charColorMap = {};
+        charTextColorMap = {};
         detectedCharColorMap = {};
+        detectedCharTextColorMap = {};
         manualCharColorMap = {};
+        manualCharTextColorMap = {};
         charNameVisibilityMap = {};
         channelConfigs = {};
         channelOrder = [];
@@ -4878,6 +5055,7 @@
         selectionAnchorIndex = null;
         const currentTheme = getValidTheme(document.body.getAttribute('data-theme'));
         charColorMap["KP（空白）"] = THEME_PRESETS[currentTheme].kpText;
+        charTextColorMap["KP（空白）"] = charColorMap["KP（空白）"];
     }
 
     function showImportedOutput() {
@@ -5009,13 +5187,156 @@
         await finishDiscordImport(imports);
     }
 
+    function getSourceCssRules(doc) {
+        const rules = [];
+        let order = 0;
+
+        function visit(ruleList) {
+            Array.from(ruleList || []).forEach(rule => {
+                if (rule.type === CSSRule.STYLE_RULE) {
+                    rules.push({ selector: rule.selectorText, style: rule.style, order: order++ });
+                } else if (rule.cssRules) {
+                    visit(rule.cssRules);
+                }
+            });
+        }
+
+        Array.from(doc.styleSheets || []).forEach(sheet => {
+            try {
+                visit(sheet.cssRules);
+            } catch (error) {}
+        });
+        return rules;
+    }
+
+    function getCssSelectorSpecificity(selector) {
+        const normalized = selector.replace(/:not\(([^)]*)\)/g, ' $1 ');
+        const ids = (normalized.match(/#[\w-]+/g) || []).length;
+        const classes = (normalized.match(/\.[\w-]+|\[[^\]]+\]|:(?!:)[\w-]+(?:\([^)]*\))?/g) || []).length;
+        const elements = (normalized.replace(/::[\w-]+/g, ' ').match(/(?:^|[\s>+~])(?:[a-zA-Z][\w-]*)/g) || []).length;
+        return ids * 10000 + classes * 100 + elements;
+    }
+
+    function getMatchingCssSpecificity(element, selector) {
+        return selector.split(/,(?![^()]*\))/)
+            .map(part => part.trim())
+            .filter(part => {
+                try {
+                    return element.matches(part);
+                } catch (error) {
+                    return false;
+                }
+            })
+            .reduce((highest, part) => Math.max(highest, getCssSelectorSpecificity(part)), 0);
+    }
+
+    function getDeclaredSourceColor(element, cssRules) {
+        let winner = null;
+        const consider = (color, important, specificity, order) => {
+            if (!color) return;
+            if (/^(inherit|initial|unset|revert|revert-layer|currentcolor)$/i.test(color)) return;
+            const candidate = { color, important, specificity, order };
+            if (!winner || Number(important) > Number(winner.important) ||
+                (important === winner.important && specificity > winner.specificity) ||
+                (important === winner.important && specificity === winner.specificity && order >= winner.order)) {
+                winner = candidate;
+            }
+        };
+
+        if (element.hasAttribute('color')) {
+            consider(element.getAttribute('color').trim(), false, 0, -1);
+        }
+
+        cssRules.forEach(rule => {
+            try {
+                const specificity = getMatchingCssSpecificity(element, rule.selector);
+                if (!specificity && !element.matches(rule.selector)) return;
+                const color = rule.style.getPropertyValue('color').trim();
+                if (color) {
+                    consider(color, rule.style.getPropertyPriority('color') === 'important', specificity, rule.order);
+                }
+            } catch (error) {}
+        });
+
+        const inlineColor = element.style?.getPropertyValue('color').trim();
+        if (inlineColor) {
+            consider(inlineColor, element.style.getPropertyPriority('color') === 'important', 1000000, Number.MAX_SAFE_INTEGER);
+        }
+
+        return winner?.color || '';
+    }
+
+    function hasExplicitSourceColor(element, cssRules) {
+        if (element.hasAttribute('color') || element.style?.getPropertyValue('color').trim()) return true;
+
+        return cssRules.some(rule => {
+            const specificity = getMatchingCssSpecificity(element, rule.selector);
+            if (specificity < 100) return false;
+            return !!rule.style.getPropertyValue('color').trim();
+        });
+    }
+
+    function getSourceElementColorInfo(element, boundary, cssRules) {
+        if (!element) return '';
+        const samples = new Map();
+        const explicitSamples = new Map();
+        const walker = element.ownerDocument.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+        let textNode;
+
+        while ((textNode = walker.nextNode())) {
+            const text = textNode.nodeValue.trim();
+            if (!text) continue;
+
+            let current = textNode.parentElement;
+            let color = '';
+            let explicit = false;
+            while (current) {
+                color = getDeclaredSourceColor(current, cssRules);
+                if (color) {
+                    explicit = current !== boundary && hasExplicitSourceColor(current, cssRules);
+                    break;
+                }
+                if (current === boundary) break;
+                current = current.parentElement;
+            }
+            if (!color) continue;
+
+            color = rgbToHex(color) || color;
+            samples.set(color, (samples.get(color) || 0) + text.length);
+            if (explicit) explicitSamples.set(color, (explicitSamples.get(color) || 0) + text.length);
+        }
+
+        function selectColor(colorSamples) {
+            let selectedColor = '';
+            let selectedWeight = 0;
+            colorSamples.forEach((weight, color) => {
+                if (weight > selectedWeight) {
+                    selectedColor = color;
+                    selectedWeight = weight;
+                }
+            });
+            return selectedColor;
+        }
+
+        return {
+            color: selectColor(samples),
+            explicitColor: selectColor(explicitSamples)
+        };
+    }
+
+    function getSourceElementColor(element, boundary, cssRules) {
+        return getSourceElementColorInfo(element, boundary, cssRules).color;
+    }
+
     async function importCcfOliaHtmlText(htmlText) {
         resetImportedLogState();
         const currentTheme = getValidTheme(document.body.getAttribute('data-theme'));
         const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+        const sourceCssRules = getSourceCssRules(doc);
 
         doc.querySelectorAll('p').forEach(p => {
-            const spans = p.querySelectorAll('span');
+            const directSpans = Array.from(p.children).filter(child => child.tagName === 'SPAN');
+            const spans = directSpans.length >= 3 ? directSpans : Array.from(p.querySelectorAll('span'));
             if (spans.length >= 3) {
                 const ch = spans[0].innerText.trim();
                 let name = spans[1].innerText.trim();
@@ -5036,18 +5357,35 @@
                     }
                 }
 
-                const detectedColor = rgbToHex(p.style.color) || "#4a4a4a";
+                const sourceNameColorInfo = getSourceElementColorInfo(spans[1], p, sourceCssRules);
+                const sourceTextColorInfo = getSourceElementColorInfo(spans[2], p, sourceCssRules);
+                const sourceNameColor = sourceNameColorInfo.color;
+                const sourceTextColor = sourceTextColorInfo.color;
+                const sourceTextColorExplicit = !!sourceTextColorInfo.explicitColor;
+                const sourceTextColorExplicitValue = sourceTextColorInfo.explicitColor;
                 if (name && name !== "system") {
-                    if (!detectedCharColorMap[name]) detectedCharColorMap[name] = detectedColor;
-                    if (!charColorMap[name]) charColorMap[name] = detectedColor;
+                    if (sourceNameColor && !detectedCharColorMap[name]) detectedCharColorMap[name] = sourceNameColor;
+                    if (sourceTextColorExplicitValue && !detectedCharTextColorMap[name]) detectedCharTextColorMap[name] = sourceTextColorExplicitValue;
+                    if (!charColorMap[name] && sourceNameColor) charColorMap[name] = sourceNameColor;
+                    if (!charTextColorMap[name] && sourceTextColorExplicitValue) charTextColorMap[name] = sourceTextColorExplicitValue;
+                    if (!charTextColorMap[name] && !sourceTextColorExplicitValue) {
+                        charTextColorMap[name] = getDefaultLogTextColor(currentTheme);
+                    }
+                    ensureCharacterColors(name, sourceNameColor);
                     if (charNameVisibilityMap[name] === undefined) charNameVisibilityMap[name] = true;
                 }
 
                 rawLogData.push({
+                    source: 'ccfolia',
                     ch,
                     name,
                     html: normalizedText,
-                    detectedColor,
+                    detectedColor: sourceNameColor,
+                    detectedTextColor: sourceTextColor,
+                    sourceNameColor,
+                    sourceTextColor,
+                    sourceTextColorExplicit,
+                    sourceTextColorExplicitValue,
                     showInTOC: false,
                     tocTitle: ''
                 });
@@ -5276,6 +5614,7 @@
 
     function renderConfigPanel() {
         document.getElementById('config-panel').style.display = 'block';
+        ensureCharacterTextColors();
         const chContainer = document.getElementById('channel-options'); chContainer.innerHTML = '';
         sortChannelsByUserOrder(Object.keys(channelConfigs)).forEach(ch => {
             if (ch === '[main]') return;
@@ -5306,19 +5645,34 @@
         });
         renderDiscordOtherSelector();
         const charContainer = document.getElementById('character-colors'); charContainer.innerHTML = '';
-        Object.keys(charColorMap).forEach(name => {
-            const color = charColorMap[name];
+        Object.keys(charColorMap).forEach((name, index) => {
+            ensureCharacterColors(name);
+            const nameColor = getColorInputValue(charColorMap[name]);
+            const textColor = getColorInputValue(charTextColorMap[name], nameColor);
+            const nameArg = escapeAttr(JSON.stringify(name));
             if (charNameVisibilityMap[name] === undefined) charNameVisibilityMap[name] = true;
             const div = document.createElement('div');
             div.className = 'channel-item';
             div.innerHTML = `
                 <label style="display:flex; align-items:center; gap:8px; flex:1; min-width:0; margin:0; cursor:pointer;">
-                    <input type="checkbox" ${charNameVisibilityMap[name] !== false ? 'checked' : ''} onchange="setCharNameVisible('${name}', this.checked)">
-                    <span style="font-weight:bold; color: ${color}; overflow:hidden; text-overflow:ellipsis;">${name}</span>
+                    <input type="checkbox" ${charNameVisibilityMap[name] !== false ? 'checked' : ''} onchange="setCharNameVisible(${nameArg}, this.checked)">
+                    <span class="char-name-color-label" style="font-weight:bold; color:${nameColor}; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(name)}</span>
                 </label>
-                <div class="color-pill">
-                    <input type="color" id="cp-${name}" value="${color}" oninput="syncCharColor('${name}', this.value, 'picker', this);">
-                    <input type="text" class="hex-field" id="ct-${name}" value="${color}" oninput="syncCharColor('${name}', this.value, 'text', this);">
+                <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                    <div class="char-color-control" style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+                        <span style="font-size:11px; opacity:0.72;">角色名稱</span>
+                        <div class="color-pill">
+                            <input type="color" id="cp-name-${index}" value="${nameColor}" oninput="syncCharColor(${nameArg}, this.value, 'picker', this, 'name')">
+                            <input type="text" class="hex-field" id="ct-name-${index}" value="${escapeAttr(nameColor)}" oninput="syncCharColor(${nameArg}, this.value, 'text', this, 'name')">
+                        </div>
+                    </div>
+                    <div class="char-color-control" style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+                        <span style="font-size:11px; opacity:0.72;">對話內容</span>
+                        <div class="color-pill">
+                            <input type="color" id="cp-text-${index}" value="${textColor}" oninput="syncCharColor(${nameArg}, this.value, 'picker', this, 'text')">
+                            <input type="text" class="hex-field" id="ct-text-${index}" value="${escapeAttr(textColor)}" oninput="syncCharColor(${nameArg}, this.value, 'text', this, 'text')">
+                        </div>
+                    </div>
                 </div>`;
             charContainer.appendChild(div);
         });
@@ -5341,21 +5695,26 @@
         
         queueColorUpdate();
     }
-    function syncCharColor(name, val, source, el) { 
-        charColorMap[name] = val; 
-        manualCharColorMap[name] = true;
-        const row = el?.closest('.channel-item');
+    function syncCharColor(name, val, source, el, colorType = 'name') {
+        const isTextColor = colorType === 'text';
+        const colorMap = isTextColor ? charTextColorMap : charColorMap;
+        colorMap[name] = val;
+        if (isTextColor) manualCharTextColorMap[name] = true;
+        else manualCharColorMap[name] = true;
+        const control = el?.closest('.char-color-control');
 
         if (source === 'picker') {
-            const textInput = row?.querySelector('input[type="text"]');
+            const textInput = control?.querySelector('input[type="text"]');
             if (textInput) textInput.value = val;
         } else if (val.startsWith('#') && val.length === 7) {
-            const colorInput = row?.querySelector('input[type="color"]');
+            const colorInput = control?.querySelector('input[type="color"]');
             if (colorInput) colorInput.value = val.substring(0,7);
         }
 
-        const nameLabel = row?.querySelector('span');
-        if (nameLabel) nameLabel.style.color = val;
+        if (!isTextColor) {
+            const nameLabel = el?.closest('.channel-item')?.querySelector('.char-name-color-label');
+            if (nameLabel) nameLabel.style.color = val;
+        }
 
         queueColorUpdate();
     }
@@ -5456,11 +5815,15 @@
         commitEditing({ rerender: true });
     });
 
-    function applyMonochromeTextColors() {
+    function applyMonochromeAllColors() {
         const monoColor = charColorMap["KP（空白）"] || getDefaultLogTextColor();
+        const names = new Set([...Object.keys(charColorMap), ...Object.keys(charTextColorMap)]);
 
-        Object.keys(charColorMap).forEach(name => {
+        names.forEach(name => {
             charColorMap[name] = monoColor;
+            charTextColorMap[name] = monoColor;
+            manualCharColorMap[name] = true;
+            manualCharTextColorMap[name] = true;
         });
 
         renderConfigPanel();
@@ -5468,21 +5831,69 @@
         saveToLocal();
     }
 
+    function applyMonochromeTextColors() {
+        const monoColor = charColorMap["KP（空白）"] || getDefaultLogTextColor();
+        ensureCharacterTextColors();
+
+        Object.keys(charTextColorMap).forEach(name => {
+            charTextColorMap[name] = monoColor;
+            manualCharTextColorMap[name] = true;
+        });
+
+        renderConfigPanel();
+        liveRenderLog();
+        saveToLocal();
+    }
+
+    function addDetectedColorSample(samples, name, color) {
+        const value = String(color || '').trim();
+        if (!name || !value) return;
+
+        if (!samples.has(name)) samples.set(name, new Map());
+        const colorCounts = samples.get(name);
+        colorCounts.set(value, (colorCounts.get(value) || 0) + 1);
+    }
+
+    function getMostFrequentDetectedColors(samples) {
+        const results = {};
+        samples.forEach((colorCounts, name) => {
+            let selectedColor = '';
+            let selectedCount = 0;
+            colorCounts.forEach((count, color) => {
+                if (count > selectedCount) {
+                    selectedColor = color;
+                    selectedCount = count;
+                }
+            });
+            if (selectedColor) results[name] = selectedColor;
+        });
+        return results;
+    }
+
     function redetectTextColors() {
+        const nameColorSamples = new Map();
+        const textColorSamples = new Map();
+
         rawLogData.forEach(item => {
             if (!item || item.type === 'image') return;
             if (!item.name || item.name === 'system') return;
 
-            const detectedColor = item.detectedColor || detectedCharColorMap[item.name];
-            if (!detectedColor) return;
-
-            if (!manualCharColorMap[item.name]) {
-                charColorMap[item.name] = detectedColor;
+            addDetectedColorSample(nameColorSamples, item.name, item.sourceNameColor);
+            if (item.sourceTextColorExplicit) {
+                addDetectedColorSample(textColorSamples, item.name, item.sourceTextColorExplicitValue);
             }
+        });
 
-            if (!detectedCharColorMap[item.name]) {
-                detectedCharColorMap[item.name] = detectedColor;
-            }
+        detectedCharColorMap = getMostFrequentDetectedColors(nameColorSamples);
+        detectedCharTextColorMap = getMostFrequentDetectedColors(textColorSamples);
+
+        Object.entries(detectedCharColorMap).forEach(([name, color]) => {
+            charColorMap[name] = color;
+            delete manualCharColorMap[name];
+        });
+        Object.entries(detectedCharTextColorMap).forEach(([name, color]) => {
+            charTextColorMap[name] = color;
+            delete manualCharTextColorMap[name];
         });
 
         renderConfigPanel();
